@@ -1,7 +1,6 @@
-#[path = "../components/heading/heading.rs"]
-mod heading;
+mod components;
 
-use heading::Heading;
+use components::heading::Heading;
 
 use gpui::{
     App, Application, Bounds, Context, Window, WindowBounds, WindowOptions, div, prelude::*, px,

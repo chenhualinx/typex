@@ -1,4 +1,4 @@
-use gpui::{div, prelude::*, FontWeight};
+use gpui::{div, prelude::*};
 
 enum HeadingLevel {
     One,
@@ -41,12 +41,12 @@ impl Heading {
     pub fn render(&self) -> impl IntoElement {
         let text = self.text.trim_start_matches('#').trim_start();
         match self.level {
-            HeadingLevel::One => div().text_3xl().font_weight(FontWeight::BOLD).child(text.to_string()),
-            HeadingLevel::Two => div().text_2xl().font_weight(FontWeight::BOLD).child(text.to_string()),
-            HeadingLevel::Three =>  div().text_xl().font_weight(FontWeight::BOLD).child(text.to_string()),
-            HeadingLevel::Four =>  div().text_lg().font_weight(FontWeight::BOLD).child(text.to_string()),
-            HeadingLevel::Five => div().text_base().font_weight(FontWeight::BOLD).child(text.to_string()),
-            _ => div().text_base().child(format!("{}", &self.text)),
+            HeadingLevel::One => div().text_3xl().child(text.to_string()),
+            HeadingLevel::Two => div().text_2xl().child(text.to_string()),
+            HeadingLevel::Three =>  div().text_xl().child(text.to_string()),
+            HeadingLevel::Four =>  div().text_lg().child(text.to_string()),
+            HeadingLevel::Five => div().text_base().child(text.to_string()),
+            _ => div().text_base().italic().child(text.to_string()),
         }
     }
 }
