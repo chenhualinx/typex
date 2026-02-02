@@ -1,6 +1,6 @@
 mod components;
 
-use components::heading::Heading;
+use components::text::Text;
 
 use gpui::{
     App, Application, Bounds, Context, Window, WindowBounds, WindowOptions, div, prelude::*, px,
@@ -8,11 +8,7 @@ use gpui::{
 };
 
 struct HelloWorld {
-    text: Vec<MarkdownElement>,
-}
-
-enum MarkdownElement {
-    Heading(Heading),
+    text: Vec<String>,
 }
 
 impl Render for HelloWorld {
@@ -30,17 +26,41 @@ impl Render for HelloWorld {
             .text_xl()
             .text_color(rgb(0xE1E3ED))
             .child(
-                div().p_8().children(
-                    self.text
-                        .iter()
-                        .map(|e| match e {
-                            MarkdownElement::Heading(h) => h.render(),
-                        })
-                        .collect::<Vec<_>>(),
+                div().p_4().child(
+                    Text::new(self.text.clone()).render(),
                 ),
             )
     }
 }
+
+const TEXT: &str = r#"
+# XXXXX
+
+XXXXX
+
+XXXXX
+
+## XXXXX
+- XXXXX
+- XXXXX
+- XXXXX
+
+## XXXXX
+- XXXXX
+- XXXXX
+- XXXXX
+- XXXXX
+
+## XXXXX
+- XXXXX
+  - XXXXX
+  - XXXXX
+  - XXXXX
+  - XXXXX
+
+# XXXXX
+- XXXXX
+"#;
 
 fn main() {
     Application::new().run(|cx: &mut App| {
@@ -51,15 +71,8 @@ fn main() {
                 ..Default::default()
             },
             |_, cx| {
-                cx.new(|_| HelloWorld  {
-                    text: vec![
-                        MarkdownElement::Heading(Heading::new("# Heading 1".into())),
-                        MarkdownElement::Heading(Heading::new("## Heading 2".into())),
-                        MarkdownElement::Heading(Heading::new("### Heading 3".into())),
-                        MarkdownElement::Heading(Heading::new("#### Heading 4".into())),
-                        MarkdownElement::Heading(Heading::new("##### Heading 5".into())),
-                        MarkdownElement::Heading(Heading::new("###### Heading 6".into())),
-                    ],
+                cx.new(|_| HelloWorld {
+                    text: TEXT.split('\n').map(|s| s.to_string()).collect(),
                 })
             },
         )
