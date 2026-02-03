@@ -20,7 +20,7 @@ impl Text {
         // Parse the document into a root `AstNode`
         let root = parse_document(&arena, &content, &Options::default());
 
-        let mut parent_div = div();
+        let mut parent_div = div().w_full();
 
 
         // 使用递归函数按树结构解析 AST
@@ -67,12 +67,21 @@ impl Text {
                     current_div = current_div.child(format!("{}", text));
                 }
                 NodeValue::CodeBlock(ref code_block) => {
-                    // 代码块节点
-                    let mut code_div = div().bg(rgb(0x2d2d2d)).text_color(rgb(0xe1e1e1)).p(px(16.0)).rounded(px(4.0)).text_sm();
-                    for child in node.children() {
-                        code_div = parse_node(child, code_div);
+                    let mut code_div = div().bg(rgb(0x2d2d2d)).
+                        text_color(rgb(0xE1E3ED)).p(px(16.0)).
+                        rounded(px(4.0)).text_sm().w_full();
+                    
+                    match code_block.info.as_str() {
+                        "json" => {
+                            code_div = code_div.child(
+                                div().text_color(rgb(0xE1E3ED)).w_full().child(format!("{}", code_block.literal)),
+                            );
+                        }
+                        _ => {
+                            code_div = code_div.child(format!("{}", code_block.literal));
+                        }
                     }
-                    current_div = current_div.child(code_div);
+                    current_div = current_div.w_full().child(code_div);
                 }
                 NodeValue::BlockQuote => {
                     // 引用块节点

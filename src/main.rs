@@ -26,7 +26,7 @@ impl Render for HelloWorld {
             .text_xl()
             .text_color(rgb(0xE1E3ED))
             .child(
-                div().p_4().child(
+                div().p_4().w_full().child(
                     Text::new(self.text.clone()).render(),
                 ),
             )
@@ -36,30 +36,18 @@ impl Render for HelloWorld {
 const TEXT: &str = r#"
 # XXXXX
 
-XXXXX
-
-XXXXX
-
-## XXXXX
-- XXXXX
-- XXXXX
-- XXXXX
-
-## XXXXX
-- XXXXX
-- XXXXX
-- XXXXX
-- XXXXX
-
-## XXXXX
-- XXXXX
-  - XXXXX
-  - XXXXX
-  - XXXXX
-  - XXXXX
-
-# XXXXX
-- XXXXX
+## Code
+```json
+{
+    "XXXXX": "XXXXX",
+    "XXXXX": "XXXXX",
+    "XXXXX": [
+        "XXXXXxxxxxxxxxxxxxxxxxxx",
+        "XXXXX",
+        "XXXXX"
+    ]
+}
+```
 "#;
 
 fn main() {
