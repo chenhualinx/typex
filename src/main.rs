@@ -4,9 +4,9 @@ use gpui::{
     App, Application, Bounds, ClipboardItem, Context, CursorStyle, ElementId, ElementInputHandler,
     Entity, EntityInputHandler, FocusHandle, Focusable, GlobalElementId, KeyBinding, Keystroke,
     LayoutId, MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, PaintQuad, Pixels, Point,
-    ShapedLine, SharedString, Style, TextRun, UTF16Selection, UnderlineStyle, Window, WindowBounds,
-    WindowOptions, actions, black, div, fill, hsla, opaque_grey, point, prelude::*, px, relative,
-    rgb, rgba, size, white, yellow,
+    ScrollHandle, ShapedLine, SharedString, Style, TextRun, UTF16Selection, UnderlineStyle,
+    Window, WindowBounds, WindowOptions, actions, black, div, fill, hsla, opaque_grey, point,
+    prelude::*, px, relative, rgb, rgba, size, white, yellow,
 };
 use unicode_segmentation::*;
 
@@ -46,6 +46,7 @@ struct TextInput {
     last_bounds: Option<Bounds<Pixels>>,
     is_selecting: bool,
     line_height: Pixels,
+    scroll_handle: ScrollHandle,
 }
 
 impl TextInput {
@@ -687,10 +688,18 @@ impl Element for TextElement {
         window: &mut Window,
         cx: &mut App,
     ) -> (LayoutId, Self::RequestLayoutState) {
+        let input = self.input.read(cx);
+        let line_count = if input.content.is_empty() {
+            1
+        } else {
+            input.content.split_inclusive('\n').count()
+        };
+        let line_height = window.line_height();
+        let content_height = line_height * line_count as f32;
+        
         let mut style = Style::default();
         style.size.width = relative(1.).into();
-        // 使用自适应高度，根据实际行数调整
-        style.size.height = relative(1.).into();
+        style.size.height = content_height.into();
         (window.request_layout(style, [], cx), ())
     }
 
@@ -974,10 +983,14 @@ impl Render for TextInput {
             .text_size(px(24.))
             .child(
                 div()
+                    .id("text_input_container")
                     .h_full()
                     .w_full()
                     .p(px(4.))
                     .bg(white())
+                    .overflow_scroll()
+                    .scrollbar_width(px(20.))
+                    .track_scroll(&self.scroll_handle)
                     .child(TextElement { input: cx.entity() }),
             )
     }
@@ -1097,6 +1110,7 @@ fn main() {
                         last_bounds: None,
                         is_selecting: false,
                         line_height: px(24.),
+                        scroll_handle: ScrollHandle::new(),
                     });
                     cx.new(|cx| InputExample {
                         text_input,
