@@ -1,6 +1,6 @@
-use gpui::{div, prelude::*, Div, rgb, px};
 use comrak::nodes::NodeValue;
-use comrak::{parse_document, Arena, Options};
+use comrak::{Arena, Options, parse_document};
+use gpui::{Div, div, prelude::*, px, rgb};
 
 pub struct Text {
     text: Vec<String>,
@@ -22,11 +22,10 @@ impl Text {
 
         let mut parent_div = div().w_full();
 
-
         // 使用递归函数按树结构解析 AST
         fn parse_node<'a>(node: &'a comrak::nodes::AstNode<'a>, parent: Div) -> Div {
             let mut current_div = parent;
-            
+
             match node.data.borrow().value {
                 NodeValue::Document => {
                     // 文档节点，递归处理子节点
@@ -67,14 +66,21 @@ impl Text {
                     current_div = current_div.child(format!("{}", text));
                 }
                 NodeValue::CodeBlock(ref code_block) => {
-                    let mut code_div = div().bg(rgb(0x2d2d2d)).
-                        text_color(rgb(0xE1E3ED)).p(px(16.0)).
-                        rounded(px(4.0)).text_sm().w_full();
-                    
+                    let mut code_div = div()
+                        .bg(rgb(0x2d2d2d))
+                        .text_color(rgb(0xE1E3ED))
+                        .p(px(16.0))
+                        .rounded(px(4.0))
+                        .text_sm()
+                        .w_full();
+
                     match code_block.info.as_str() {
                         "json" => {
                             code_div = code_div.child(
-                                div().text_color(rgb(0xE1E3ED)).w_full().child(format!("{}", code_block.literal)),
+                                div()
+                                    .text_color(rgb(0xE1E3ED))
+                                    .w_full()
+                                    .child(format!("{}", code_block.literal)),
                             );
                         }
                         _ => {
@@ -85,7 +91,10 @@ impl Text {
                 }
                 NodeValue::BlockQuote => {
                     // 引用块节点
-                    let mut quote_div = div().border_l(px(4.0)).pl(px(16.0)).text_color(rgb(0x9ca3af));
+                    let mut quote_div = div()
+                        .border_l(px(4.0))
+                        .pl(px(16.0))
+                        .text_color(rgb(0x9ca3af));
                     for child in node.children() {
                         quote_div = parse_node(child, quote_div);
                     }
@@ -114,10 +123,10 @@ impl Text {
                     }
                 }
             }
-            
+
             current_div
         }
-        
+
         // 开始解析 AST，跳过根节点本身
         let mut iter = root.children();
         iter.next(); // 跳过根节点
@@ -125,7 +134,7 @@ impl Text {
             parent_div = parse_node(child, parent_div);
             // println!("{:?}", child.data.borrow().value);
         }
-        
+
         parent_div
     }
 }
