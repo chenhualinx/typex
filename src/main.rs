@@ -502,13 +502,17 @@ impl EntityInputHandler for TextInput {
         println!("Calculated range: {:?}", range);
         println!("Replacing text from {} to {} with {:?}", range.start, range.end, new_text);
         
+        let content_len = self.content.len();
+        let end = std::cmp::min(range.end, content_len);
+        let start = std::cmp::min(range.start, end);
+        
         self.content =
-            (self.content[0..range.start].to_owned() + new_text + &self.content[range.end..])
+            (self.content[0..start].to_owned() + new_text + &self.content[end..])
                 .into();
         
         println!("New content: {:?}", self.content);
         
-        self.selected_range = range.start + new_text.len()..range.start + new_text.len();
+        self.selected_range = start + new_text.len()..start + new_text.len();
         println!("New selected_range: {:?}", self.selected_range);
         
         self.marked_range.take();
@@ -804,9 +808,14 @@ impl Element for TextElement {
             if cursor >= line_start && cursor <= line_end {
                 let local_cursor = cursor - line_start;
                 println!("Calculating cursor position for line {}: local_cursor={}, line_text.len()={}", line_idx, local_cursor, line_text.len());
-                // 只有当光标在行内（不在换行符位置）时才设置光标
-                if local_cursor < line_text.len() {
-                    let cursor_x = bounds.left() + shaped_line.x_for_index(local_cursor);
+                // 允许光标显示在行末
+                if local_cursor <= line_text.len() {
+                    let cursor_x = if local_cursor < line_text.len() {
+                        bounds.left() + shaped_line.x_for_index(local_cursor)
+                    } else {
+                        // 光标在行末，使用行的宽度
+                        bounds.left() + shaped_line.width
+                    };
                     println!("Cursor position: x={}, y={}", cursor_x, y_offset);
                     cursor_opt = Some(fill(
                         Bounds::new(
@@ -816,7 +825,7 @@ impl Element for TextElement {
                         gpui::blue(),
                     ));
                 } else {
-                    println!("Cursor at newline position, skipping this line");
+                    println!("Cursor beyond line end, skipping this line");
                 }
             }
             
