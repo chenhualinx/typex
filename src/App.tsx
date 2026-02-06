@@ -1,50 +1,160 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { invoke } from '@tauri-apps/api/core';
+import { open } from '@tauri-apps/plugin-dialog';
+import { MarkdownEditor } from './components/MarkdownEditor';
+import { DirectoryTree, FileNode } from './components/DirectoryTree';
+import './App.css';
+
+interface RustFileNode {
+  name: string;
+  path: string;
+  is_directory: boolean;
+  children?: RustFileNode[];
+}
+
+function convertFileNode(rustNode: RustFileNode): FileNode {
+  return {
+    name: rustNode.name,
+    path: rustNode.path,
+    isDirectory: rustNode.is_directory,
+    children: rustNode.children?.map(convertFileNode),
+  };
+}
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+  const [files, setFiles] = useState<FileNode[]>([]);
+  const [currentFile, setCurrentFile] = useState<string | null>(null);
+  const [currentContent, setCurrentContent] = useState('');
+  const [originalContent, setOriginalContent] = useState('');
+  const [isModified, setIsModified] = useState(false);
+  const [editorKey, setEditorKey] = useState(0);
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+  // 使用 ref 来存储最新的状态，避免闭包问题
+  const currentFileRef = useRef(currentFile);
+  const currentContentRef = useRef(currentContent);
+  const isModifiedRef = useRef(isModified);
+
+  // 同步 ref
+  currentFileRef.current = currentFile;
+  currentContentRef.current = currentContent;
+  isModifiedRef.current = isModified;
+
+  const handleSave = useCallback(async () => {
+    const file = currentFileRef.current;
+    const content = currentContentRef.current;
+    if (!file) return;
+
+    try {
+      await invoke('write_file', {
+        path: file,
+        content: content,
+      });
+      setOriginalContent(content);
+      setIsModified(false);
+    } catch (error) {
+      console.error('Failed to save file:', error);
+    }
+  }, []);
+
+  const handleOpenFolder = async () => {
+    try {
+      const selected = await open({
+        directory: true,
+        multiple: false,
+      });
+
+      if (selected && typeof selected === 'string') {
+        const result = await invoke<RustFileNode[]>('read_directory', { path: selected });
+        setFiles(result.map(convertFileNode));
+      }
+    } catch (error) {
+      console.error('Failed to open folder:', error);
+    }
+  };
+
+  const handleFileSelect = useCallback(async (path: string) => {
+    console.log('File selected:', path);
+    
+    // 如果当前文件有未保存的更改，提示用户
+    if (isModifiedRef.current) {
+      const shouldSave = confirm('当前文件有未保存的更改，是否保存？');
+      if (shouldSave) {
+        await handleSave();
+      }
+    }
+
+    try {
+      const content = await invoke<string>('read_file', { path });
+      console.log('File content loaded, length:', content.length);
+      setCurrentFile(path);
+      setCurrentContent(content);
+      setOriginalContent(content);
+      setIsModified(false);
+      // 强制重新创建编辑器
+      setEditorKey(prev => prev + 1);
+    } catch (error) {
+      console.error('Failed to read file:', error);
+    }
+  }, [handleSave]);
+
+  const handleContentChange = useCallback((content: string) => {
+    setCurrentContent(content);
+    setIsModified(content !== originalContent);
+  }, [originalContent]);
+
+  const getFileName = (path: string | null) => {
+    if (!path) return '';
+    return path.split('/').pop() || path.split('\\').pop() || '';
+  };
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="app">
+      <div className="toolbar">
+        <button className="toolbar-btn" onClick={handleOpenFolder}>
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z" />
+          </svg>
+          打开文件夹
+        </button>
+        {currentFile && (
+          <div className="file-info">
+            <span className="file-name">
+              {getFileName(currentFile)}
+              {isModified && <span className="modified-indicator">*</span>}
+            </span>
+          </div>
+        )}
       </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+      <div className="main-content">
+        {files.length > 0 && (
+          <DirectoryTree
+            files={files}
+            currentFile={currentFile}
+            onFileSelect={handleFileSelect}
+          />
+        )}
+        <div className="editor-container">
+          {currentFile ? (
+            <MarkdownEditor
+              key={`${currentFile}-${editorKey}`}
+              content={currentContent}
+              onChange={handleContentChange}
+              onSave={handleSave}
+            />
+          ) : (
+            <div className="empty-state">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
+              </svg>
+              <p>选择一个 Markdown 文件开始编辑</p>
+              <button className="open-folder-btn" onClick={handleOpenFolder}>
+                打开文件夹
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
