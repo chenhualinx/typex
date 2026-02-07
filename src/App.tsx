@@ -3,7 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { listen } from '@tauri-apps/api/event';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
-import { FileTextOutlined } from '@ant-design/icons';
+import { FileTextOutlined, FolderOpenOutlined } from '@ant-design/icons';
 import { MarkdownEditor } from './components/MarkdownEditor';
 import { DirectoryTree, FileNode } from './components/DirectoryTree';
 import './App.css';
@@ -25,6 +25,7 @@ function convertFileNode(rustNode: RustFileNode): FileNode {
 }
 
 const SIDEBAR_COLLAPSED_KEY = 'typex:sidebar-collapsed';
+const RECENT_FOLDERS_KEY = 'typex:recent-folders';
 
 function App() {
   const [files, setFiles] = useState<FileNode[]>([]);
@@ -37,6 +38,10 @@ function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const saved = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
     return saved ? JSON.parse(saved) : false;
+  });
+  const [recentFolders, setRecentFolders] = useState<string[]>(() => {
+    const saved = localStorage.getItem(RECENT_FOLDERS_KEY);
+    return saved ? JSON.parse(saved) : [];
   });
 
   // 使用 ref 来存储最新的状态，避免闭包问题
@@ -86,6 +91,28 @@ function App() {
     }
   }, [rootPath]);
 
+  // 添加文件夹到最近访问记录
+  const addToRecentFolders = useCallback((folderPath: string) => {
+    setRecentFolders(prev => {
+      const newList = [folderPath, ...prev.filter(p => p !== folderPath)].slice(0, 5);
+      localStorage.setItem(RECENT_FOLDERS_KEY, JSON.stringify(newList));
+      return newList;
+    });
+  }, []);
+
+  // 打开指定文件夹
+  const openFolder = useCallback(async (folderPath: string) => {
+    try {
+      setOpenedFolderPath(folderPath);
+      const result = await invoke<RustFileNode[]>('read_directory', { path: folderPath });
+      setFiles(result.map(convertFileNode));
+      addToRecentFolders(folderPath);
+    } catch (error) {
+      console.error('Failed to open folder:', error);
+      alert('打开文件夹失败: ' + error);
+    }
+  }, [addToRecentFolders]);
+
   const handleOpenFolder = useCallback(async () => {
     try {
       const selected = await open({
@@ -94,14 +121,12 @@ function App() {
       });
 
       if (selected && typeof selected === 'string') {
-        setOpenedFolderPath(selected);
-        const result = await invoke<RustFileNode[]>('read_directory', { path: selected });
-        setFiles(result.map(convertFileNode));
+        await openFolder(selected);
       }
     } catch (error) {
       console.error('Failed to open folder:', error);
     }
-  }, []);
+  }, [openFolder]);
 
   const handleCreateFile = useCallback(async (parentPath: string, name: string) => {
     try {
@@ -293,9 +318,53 @@ function App() {
             />
           ) : (
             <div className="empty-state">
-              <FileTextOutlined style={{ fontSize: 64, color: '#ccc' }} />
-              <p>选择一个 Markdown 文件开始编辑</p>
-              <p style={{ fontSize: '12px', color: '#999' }}>或使用菜单 文件 &gt; 打开文件夹</p>
+              {!openedFolderPath && (
+                <>
+                  <FileTextOutlined style={{ fontSize: 64, color: '#ccc' }} />
+                  <p>选择一个 Markdown 文件开始编辑</p>
+                </>
+              )}
+              {!openedFolderPath && recentFolders.length > 0 && (
+                <div style={{ marginTop: '32px', textAlign: 'left', minWidth: '300px' }}>
+                  <p style={{ fontSize: '12px', color: '#999', marginBottom: '12px', textAlign: 'center' }}>最近访问</p>
+                  {recentFolders.map((folder) => (
+                    <div
+                      key={folder}
+                      onClick={() => openFolder(folder)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: '8px 12px',
+                        marginBottom: '8px',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        backgroundColor: '#f5f5f5',
+                        transition: 'background-color 0.2s',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#e8e8e8';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f5f5f5';
+                      }}
+                    >
+                      <FolderOpenOutlined style={{ marginRight: '8px', color: '#999' }} />
+                      <span
+                        style={{
+                          fontSize: '13px',
+                          color: '#666',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                        title={folder}
+                      >
+                        {folder}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

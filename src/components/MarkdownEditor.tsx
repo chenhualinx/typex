@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import Vditor from 'vditor';
 import 'vditor/dist/index.css';
-import { SlashToolbar } from './SlashToolbar';
 import './EnhancedTable.css';
 import {
   parseMarkdown,
@@ -24,7 +23,6 @@ interface MarkdownEditorProps {
 export function MarkdownEditor({ content, onChange, onSave }: MarkdownEditorProps) {
   const vditorRef = useRef<HTMLDivElement>(null);
   const vditorInstanceRef = useRef<Vditor | null>(null);
-  const slashRangeRef = useRef<Range | null>(null);
   const isInternalUpdateRef = useRef(false);
   const contentRef = useRef(content);
 
@@ -32,123 +30,6 @@ export function MarkdownEditor({ content, onChange, onSave }: MarkdownEditorProp
   useEffect(() => {
     contentRef.current = content;
   }, [content]);
-
-  const [showSlashToolbar, setShowSlashToolbar] = useState(false);
-  const [toolbarPosition, setToolbarPosition] = useState({ x: 0, y: 0 });
-
-  // 获取光标位置
-  const getCursorPosition = useCallback(() => {
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return { x: 0, y: 0 };
-
-    const range = selection.getRangeAt(0);
-    const rect = range.getBoundingClientRect();
-
-    return {
-      x: rect.left,
-      y: rect.bottom + 8,
-    };
-  }, []);
-
-  // 删除 '/' 字符
-  const removeSlash = useCallback(() => {
-    if (!slashRangeRef.current) return;
-
-    try {
-      const range = slashRangeRef.current;
-      const textNode = range.startContainer;
-      const offset = range.startOffset;
-
-      if (textNode.nodeType === Node.TEXT_NODE) {
-        const text = textNode.textContent || '';
-        const newText = text.substring(0, offset - 1) + text.substring(offset);
-        textNode.textContent = newText;
-
-        const selection = window.getSelection();
-        if (selection) {
-          const newRange = document.createRange();
-          newRange.setStart(textNode, offset - 1);
-          newRange.collapse(true);
-          selection.removeAllRanges();
-          selection.addRange(newRange);
-        }
-      }
-    } catch (e) {
-      console.error('Error removing slash:', e);
-    }
-
-    slashRangeRef.current = null;
-  }, []);
-
-  // 插入表格
-  const insertTable = useCallback((rows: number, cols: number) => {
-    console.log('[Table] insertTable called with', rows, 'rows,', cols, 'cols');
-    const vditor = vditorInstanceRef.current;
-    if (!vditor) {
-      console.log('[Table] vditor not found');
-      return;
-    }
-
-    try {
-      removeSlash();
-    } catch (e) {
-      console.log('[Table] removeSlash failed, continuing...');
-    }
-
-    // 使用 AST 创建表格
-    const headers = Array(cols).fill('列');
-    const dataRows = Array(rows - 1).fill(null).map(() => Array(cols).fill(''));
-    console.log('[Table] Creating table with headers:', headers, 'rows:', dataRows.length);
-
-    const table = createTable(headers, dataRows);
-    console.log('[Table] Table created:', table);
-
-    const tableMarkdown = tableToMarkdown(table);
-    console.log('[Table] Table markdown:', JSON.stringify(tableMarkdown));
-
-    // 使用 insertValue 在光标位置插入表格
-    vditor.insertValue(tableMarkdown);
-    console.log('[Table] Table inserted via insertValue');
-
-    // 延迟触发 onChange，让 Vditor 的 input 回调先处理
-    setTimeout(() => {
-      const newValue = vditor.getValue();
-      console.log('[Table] Getting value after insert:', JSON.stringify(newValue));
-      onChange(newValue);
-      console.log('[Table] onChange called with new value');
-    }, 100);
-  }, [removeSlash, onChange]);
-
-  // 处理插入表格
-  const handleInsertTable = useCallback((rows: number, cols: number) => {
-    console.log('[Table] handleInsertTable called');
-    insertTable(rows, cols);
-    setShowSlashToolbar(false);
-    console.log('[Table] Toolbar closed');
-  }, [insertTable]);
-
-  // 处理 '/' 快捷键
-  const handleSlashKey = useCallback((event: KeyboardEvent) => {
-    if (event.key === '/') {
-      const selection = window.getSelection();
-      if (selection && selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0).cloneRange();
-        slashRangeRef.current = range;
-      }
-
-      const position = getCursorPosition();
-      setToolbarPosition(position);
-      setShowSlashToolbar(true);
-      return false;
-    }
-    return true;
-  }, [getCursorPosition]);
-
-  // 处理工具栏关闭
-  const handleToolbarClose = useCallback(() => {
-    setShowSlashToolbar(false);
-    removeSlash();
-  }, [removeSlash]);
 
   // 为表格添加增强功能
   const enhanceTable = useCallback((tableElement: HTMLTableElement, tableIndex: number) => {
@@ -567,19 +448,9 @@ export function MarkdownEditor({ content, onChange, onSave }: MarkdownEditorProp
           }, 800);
         },
         keydown: (event: KeyboardEvent) => {
-          if (event.key === '/' && !showSlashToolbar) {
-            return handleSlashKey(event);
-          }
-
           if ((event.ctrlKey || event.metaKey) && event.key === 's') {
             event.preventDefault();
             onSave?.();
-            return false;
-          }
-
-          if (event.key === 'Escape' && showSlashToolbar) {
-            setShowSlashToolbar(false);
-            removeSlash();
             return false;
           }
 
@@ -595,7 +466,7 @@ export function MarkdownEditor({ content, onChange, onSave }: MarkdownEditorProp
         vditorInstanceRef.current = null;
       }
     };
-  }, [content, onChange, onSave, handleSlashKey, showSlashToolbar, removeSlash, scanAndEnhanceTables]);
+  }, [content, onChange, onSave, scanAndEnhanceTables]);
 
   // 内容变化时更新 Vditor
   useEffect(() => {
@@ -638,14 +509,6 @@ export function MarkdownEditor({ content, onChange, onSave }: MarkdownEditorProp
   }, [scanAndEnhanceTables]);
 
   return (
-    <>
-      <div ref={vditorRef} style={{ height: '100%', flex: 1, minWidth: 0 }} />
-      <SlashToolbar
-        isOpen={showSlashToolbar}
-        position={toolbarPosition}
-        onClose={handleToolbarClose}
-        onInsertTable={handleInsertTable}
-      />
-    </>
+    <div ref={vditorRef} style={{ height: '100%', flex: 1, minWidth: 0 }} />
   );
 }
