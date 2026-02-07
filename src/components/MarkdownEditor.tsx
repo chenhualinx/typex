@@ -23,12 +23,23 @@ export function MarkdownEditor({ content, onChange, onSave }: MarkdownEditorProp
   const vditorRef = useRef<HTMLDivElement>(null);
   const vditorInstanceRef = useRef<Vditor | null>(null);
   const isInternalUpdateRef = useRef(false);
+  const isInitializedRef = useRef(false);
   const contentRef = useRef(content);
+  const onChangeRef = useRef(onChange);
+  const onSaveRef = useRef(onSave);
 
-  // 同步 contentRef 与 content prop
+  // 同步 refs 与 props
   useEffect(() => {
     contentRef.current = content;
   }, [content]);
+
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
+  useEffect(() => {
+    onSaveRef.current = onSave;
+  }, [onSave]);
 
   // 为表格添加增强功能
   const enhanceTable = useCallback((tableElement: HTMLTableElement, tableIndex: number) => {
@@ -407,6 +418,7 @@ export function MarkdownEditor({ content, onChange, onSave }: MarkdownEditorProp
     });
   }, [enhanceTable]);
 
+  // 初始化 Vditor（只执行一次）
   useEffect(() => {
     const element = vditorRef.current;
     if (!element) return;
@@ -435,12 +447,21 @@ export function MarkdownEditor({ content, onChange, onSave }: MarkdownEditorProp
             return;
           }
           console.log('[Table] Input callback, value length:', value.length);
-          onChange(value);
+          // 标记为已初始化（如果还没初始化）
+          if (!isInitializedRef.current) {
+            isInitializedRef.current = true;
+            console.log('[Table] Marked as initialized via input callback');
+          }
+          onChangeRef.current(value);
           setTimeout(scanAndEnhanceTables, 100);
         },
         after: () => {
+          console.log('[Table] Vditor after callback called');
           if (vditorInstanceRef.current) {
-            vditorInstanceRef.current.setValue(content);
+            // 使用 contentRef 获取最新内容
+            vditorInstanceRef.current.setValue(contentRef.current);
+            isInitializedRef.current = true;
+            console.log('[Table] Vditor initialized, content set');
           }
           setTimeout(() => {
             scanAndEnhanceTables();
@@ -449,7 +470,7 @@ export function MarkdownEditor({ content, onChange, onSave }: MarkdownEditorProp
         keydown: (event: KeyboardEvent) => {
           if ((event.ctrlKey || event.metaKey) && event.key === 's') {
             event.preventDefault();
-            onSave?.();
+            onSaveRef.current?.();
             return false;
           }
 
@@ -464,8 +485,11 @@ export function MarkdownEditor({ content, onChange, onSave }: MarkdownEditorProp
         vditorInstanceRef.current.destroy();
         vditorInstanceRef.current = null;
       }
+      isInitializedRef.current = false;
     };
-  }, [content, onChange, onSave, scanAndEnhanceTables]);
+    // 注意：不依赖 content，避免内容变化时重新创建编辑器
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 内容变化时更新 Vditor
   useEffect(() => {
@@ -475,10 +499,33 @@ export function MarkdownEditor({ content, onChange, onSave }: MarkdownEditorProp
       return;
     }
 
+    // 如果还未初始化完成，跳过（初始值在 after 回调中设置）
+    if (!isInitializedRef.current) {
+      console.log('[Table] Skipping external content update (not initialized yet)');
+      return;
+    }
+
     const vditor = vditorInstanceRef.current;
-    if (vditor && vditor.getValue() !== content) {
-      console.log('[Table] External content update:', JSON.stringify(content).substring(0, 100));
+    if (!vditor || content == null) return;
+
+    const currentValue = vditor.getValue();
+    // 标准化换行符后再比较，避免 \r\n 和 \n 的差异导致不必要的更新
+    const normalizedCurrent = currentValue.replace(/\r\n/g, '\n');
+    const normalizedContent = content.replace(/\r\n/g, '\n');
+
+    console.log('[Table] Comparing values:', {
+      currentLength: normalizedCurrent.length,
+      contentLength: normalizedContent.length,
+      equal: normalizedCurrent === normalizedContent,
+      currentPreview: JSON.stringify(normalizedCurrent).substring(0, 50),
+      contentPreview: JSON.stringify(normalizedContent).substring(0, 50),
+    });
+
+    if (normalizedCurrent !== normalizedContent) {
+      console.log('[Table] External content update - VALUES DIFFER!');
       vditor.setValue(content);
+    } else {
+      console.log('[Table] Skipping update - values are equal');
     }
   }, [content]);
 
