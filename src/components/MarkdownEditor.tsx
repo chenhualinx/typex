@@ -242,15 +242,25 @@ export function MarkdownEditor({ content, onChange, onSave }: MarkdownEditorProp
       dividersContainer.innerHTML = '';
       const { cols } = getTableDimensions();
 
-      for (let i = 0; i < cols - 1; i++) {
+      // 在列之间创建分隔线（包括最后一列之后）
+      for (let i = 0; i < cols; i++) {
         const cell = tableElement.rows[0]?.cells[i];
-        const nextCell = tableElement.rows[0]?.cells[i + 1];
-        if (!cell || !nextCell) continue;
+        if (!cell) continue;
 
-        const nextCellRect = nextCell.getBoundingClientRect();
+        const cellRect = cell.getBoundingClientRect();
         const wrapperRect = wrapper.getBoundingClientRect();
 
-        const right = nextCellRect.left - wrapperRect.left;
+        // 计算位置：如果是最后一列，使用单元格右边缘；否则使用下一列的左边缘
+        let right: number;
+        if (i < cols - 1) {
+          const nextCell = tableElement.rows[0]?.cells[i + 1];
+          if (!nextCell) continue;
+          const nextCellRect = nextCell.getBoundingClientRect();
+          right = nextCellRect.left - wrapperRect.left;
+        } else {
+          // 最后一列，使用单元格右边缘
+          right = cellRect.right - wrapperRect.left;
+        }
 
         const colDivider = document.createElement('div');
         colDivider.className = 'table-col-divider';
@@ -266,8 +276,8 @@ export function MarkdownEditor({ content, onChange, onSave }: MarkdownEditorProp
           modifyTable((table) => astInsertColumn(table, i + 1));
         };
 
-        // 删除列按钮
-        if (cols > 1) {
+        // 删除列按钮（只对非最后一列显示，且至少保留一列）
+        if (cols > 1 && i < cols - 1) {
           const deleteBtn = document.createElement('button');
           deleteBtn.className = 'table-delete-col-btn';
           deleteBtn.innerHTML = '×';
@@ -288,15 +298,25 @@ export function MarkdownEditor({ content, onChange, onSave }: MarkdownEditorProp
     const createRowDividers = () => {
       const { rows } = getTableDimensions();
 
-      for (let i = 0; i < rows - 1; i++) {
+      // 在行之间创建分隔线（包括最后一行之后）
+      for (let i = 0; i < rows; i++) {
         const row = tableElement.rows[i];
-        const nextRow = tableElement.rows[i + 1];
-        if (!row || !nextRow) continue;
+        if (!row) continue;
 
-        const nextRowRect = nextRow.getBoundingClientRect();
+        const rowRect = row.getBoundingClientRect();
         const wrapperRect = wrapper.getBoundingClientRect();
 
-        const bottom = nextRowRect.top - wrapperRect.top;
+        // 计算位置：如果是最后一行，使用行底部；否则使用下一行的顶部
+        let bottom: number;
+        if (i < rows - 1) {
+          const nextRow = tableElement.rows[i + 1];
+          if (!nextRow) continue;
+          const nextRowRect = nextRow.getBoundingClientRect();
+          bottom = nextRowRect.top - wrapperRect.top;
+        } else {
+          // 最后一行，使用行底部
+          bottom = rowRect.bottom - wrapperRect.top;
+        }
 
         const rowDivider = document.createElement('div');
         rowDivider.className = 'table-row-divider';
@@ -312,8 +332,8 @@ export function MarkdownEditor({ content, onChange, onSave }: MarkdownEditorProp
           modifyTable((table) => astInsertRow(table, i + 1));
         };
 
-        // 删除行按钮
-        if (rows > 1) {
+        // 删除行按钮（只对非最后一行显示，且至少保留一行）
+        if (rows > 1 && i < rows - 1) {
           const deleteBtn = document.createElement('button');
           deleteBtn.className = 'table-delete-row-btn';
           deleteBtn.innerHTML = '×';
