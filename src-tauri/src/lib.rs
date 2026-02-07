@@ -96,6 +96,20 @@ async fn create_folder(path: String) -> Result<(), String> {
         .map_err(|e| e.to_string())
 }
 
+#[command]
+async fn delete_file(path: String) -> Result<(), String> {
+    tokio::fs::remove_file(&path)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[command]
+async fn delete_folder(path: String) -> Result<(), String> {
+    tokio::fs::remove_dir_all(&path)
+        .await
+        .map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -108,7 +122,9 @@ pub fn run() {
             read_file,
             write_file,
             create_file,
-            create_folder
+            create_folder,
+            delete_file,
+            delete_folder
         ])
         .setup(|app| {
             // 创建菜单

@@ -132,6 +132,42 @@ function App() {
     }
   }, [refreshDirectory]);
 
+  const handleDeleteFiles = useCallback(async (paths: string[]) => {
+    try {
+      for (const path of paths) {
+        // 根据路径在 files 中查找判断是文件还是文件夹
+        const findNode = (nodes: FileNode[], targetPath: string): FileNode | null => {
+          for (const node of nodes) {
+            if (node.path === targetPath) return node;
+            if (node.children) {
+              const found = findNode(node.children, targetPath);
+              if (found) return found;
+            }
+          }
+          return null;
+        };
+        
+        const node = findNode(files, path);
+        if (node?.isDirectory) {
+          await invoke('delete_folder', { path });
+        } else {
+          await invoke('delete_file', { path });
+        }
+      }
+      await refreshDirectory();
+      // 如果当前打开的文件被删除了，清空编辑器
+      if (currentFile && paths.includes(currentFile)) {
+        setCurrentFile(null);
+        setCurrentContent('');
+        setOriginalContent('');
+        setIsModified(false);
+      }
+    } catch (error) {
+      console.error('Failed to delete:', error);
+      alert('删除失败: ' + error);
+    }
+  }, [refreshDirectory, files, currentFile]);
+
   const handleFileSelect = useCallback(async (path: string) => {
     console.log('File selected:', path);
     
@@ -193,6 +229,7 @@ function App() {
             onFileSelect={handleFileSelect}
             onCreateFile={handleCreateFile}
             onCreateFolder={handleCreateFolder}
+            onDeleteFiles={handleDeleteFiles}
             rootPath={rootPath || undefined}
           />
         )}
