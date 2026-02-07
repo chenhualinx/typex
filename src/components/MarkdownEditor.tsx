@@ -11,6 +11,7 @@ interface MarkdownEditorProps {
 export function MarkdownEditor({ content, onChange, onSave }: MarkdownEditorProps) {
   const vditorRef = useRef<HTMLDivElement>(null);
   const vditorInstanceRef = useRef<Vditor | null>(null);
+  const resizeTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     const element = vditorRef.current;
@@ -92,8 +93,34 @@ export function MarkdownEditor({ content, onChange, onSave }: MarkdownEditorProp
       });
     }, 0);
 
+    // 处理窗口大小变化
+    const handleResize = () => {
+      // 使用防抖避免频繁触发
+      if (resizeTimerRef.current) {
+        window.clearTimeout(resizeTimerRef.current);
+      }
+      resizeTimerRef.current = window.setTimeout(() => {
+        try {
+          const vditor = vditorInstanceRef.current;
+          if (vditor && (vditor as any).vditor && (vditor as any).vditor.element) {
+            // 触发 Vditor 重新计算布局
+            const currentValue = vditor.getValue();
+            vditor.setValue(currentValue);
+          }
+        } catch (e) {
+          // 忽略错误
+        }
+      }, 100);
+    };
+
+    window.addEventListener('resize', handleResize);
+
     return () => {
       clearTimeout(timer);
+      if (resizeTimerRef.current) {
+        window.clearTimeout(resizeTimerRef.current);
+      }
+      window.removeEventListener('resize', handleResize);
       try {
         vditorInstanceRef.current?.destroy();
       } catch (e) {
