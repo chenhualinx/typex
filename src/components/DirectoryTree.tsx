@@ -14,6 +14,7 @@ interface DirectoryTreeProps {
   onFileSelect: (path: string) => void;
   onCreateFile?: (parentPath: string, name: string) => void;
   onCreateFolder?: (parentPath: string, name: string) => void;
+  rootPath?: string;
 }
 
 // 用于标识正在创建的新节点
@@ -234,8 +235,10 @@ function TreeNode({
   );
 }
 
-export function DirectoryTree({ files, currentFile, onFileSelect, onCreateFile, onCreateFolder }: DirectoryTreeProps) {
+export function DirectoryTree({ files, currentFile, onFileSelect, onCreateFile, onCreateFolder, rootPath }: DirectoryTreeProps) {
   const [creatingNode, setCreatingNode] = useState<CreatingNode | null>(null);
+  const [showRootContextMenu, setShowRootContextMenu] = useState(false);
+  const [rootContextMenuPos, setRootContextMenuPos] = useState({ x: 0, y: 0 });
 
   const handleCreateFile = (parentPath: string, name: string) => {
     if (name === '') {
@@ -263,12 +266,52 @@ export function DirectoryTree({ files, currentFile, onFileSelect, onCreateFile, 
     setCreatingNode(null);
   };
 
+  // 检查是否在根目录创建
+  const isCreatingAtRoot = creatingNode?.parentPath === rootPath;
+
+  const handleRootContextMenu = (e: React.MouseEvent) => {
+    if (!rootPath) return;
+    e.preventDefault();
+    setRootContextMenuPos({ x: e.clientX, y: e.clientY });
+    setShowRootContextMenu(true);
+  };
+
+  const handleRootCreateFile = () => {
+    setShowRootContextMenu(false);
+    if (rootPath) {
+      handleCreateFile(rootPath, '');
+    }
+  };
+
+  const handleRootCreateFolder = () => {
+    setShowRootContextMenu(false);
+    if (rootPath) {
+      handleCreateFolder(rootPath, '');
+    }
+  };
+
   return (
     <div className="directory-tree">
       <div className="tree-header">
         <span>文件目录</span>
       </div>
-      <div className="tree-content">
+      <div className="tree-content" onContextMenu={handleRootContextMenu}>
+        {/* 根目录创建输入框 */}
+        {isCreatingAtRoot && creatingNode && rootPath && (
+          <NewNodeInput
+            type={creatingNode.type}
+            onConfirm={(name) => {
+              if (creatingNode.type === 'file') {
+                onCreateFile?.(rootPath, name);
+              } else {
+                onCreateFolder?.(rootPath, name);
+              }
+              setCreatingNode(null);
+            }}
+            onCancel={handleCancelCreating}
+            level={0}
+          />
+        )}
         {files.map((node) => (
           <TreeNode
             key={node.path}
@@ -282,6 +325,31 @@ export function DirectoryTree({ files, currentFile, onFileSelect, onCreateFile, 
           />
         ))}
       </div>
+      {showRootContextMenu && (
+        <>
+          <div
+            className="context-menu-overlay"
+            onClick={() => setShowRootContextMenu(false)}
+          />
+          <div
+            className="context-menu"
+            style={{ left: rootContextMenuPos.x, top: rootContextMenuPos.y }}
+          >
+            <div className="context-menu-item" onClick={handleRootCreateFile}>
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
+              </svg>
+              新建文件
+            </div>
+            <div className="context-menu-item" onClick={handleRootCreateFolder}>
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z" />
+              </svg>
+              新建文件夹
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

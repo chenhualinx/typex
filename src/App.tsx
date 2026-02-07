@@ -63,19 +63,20 @@ function App() {
     }
   }, []);
 
+  // 获取根目录路径
+  const getRootPath = useCallback((nodes: FileNode[]): string | null => {
+    if (nodes.length === 0) return null;
+    const firstNode = nodes[0];
+    const pathParts = firstNode.path.split(/[\\/]/);
+    pathParts.pop();
+    return pathParts.join('/');
+  }, []);
+
+  const rootPath = getRootPath(files);
+
   const refreshDirectory = useCallback(async () => {
     if (files.length === 0) return;
     
-    // 获取根目录路径
-    const getRootPath = (nodes: FileNode[]): string | null => {
-      if (nodes.length === 0) return null;
-      const firstNode = nodes[0];
-      const pathParts = firstNode.path.split(/[\\/]/);
-      pathParts.pop();
-      return pathParts.join('/');
-    };
-    
-    const rootPath = getRootPath(files);
     if (!rootPath) return;
     
     try {
@@ -84,7 +85,7 @@ function App() {
     } catch (error) {
       console.error('Failed to refresh directory:', error);
     }
-  }, [files]);
+  }, [files, rootPath]);
 
   const handleOpenFolder = useCallback(async () => {
     try {
@@ -192,6 +193,7 @@ function App() {
             onFileSelect={handleFileSelect}
             onCreateFile={handleCreateFile}
             onCreateFolder={handleCreateFolder}
+            rootPath={rootPath || undefined}
           />
         )}
         <div className="editor-container">
