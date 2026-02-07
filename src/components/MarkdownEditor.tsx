@@ -546,7 +546,7 @@ export function MarkdownEditor({ content, onChange, onSave }: MarkdownEditorProp
           },
         },
         toolbarConfig: {
-          hide: true,
+          hide: false,
         },
         input: (value: string) => {
           // 如果是内部更新，跳过
