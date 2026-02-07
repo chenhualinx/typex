@@ -1,5 +1,23 @@
 import { useState, useRef, useEffect } from 'react';
-import { EnvironmentOutlined } from '@ant-design/icons';
+import {
+  AimOutlined,
+  FolderOutlined,
+  FolderOpenOutlined,
+  FileOutlined,
+  FileTextOutlined,
+  FileMarkdownOutlined,
+  FileImageOutlined,
+  FileZipOutlined,
+  FilePdfOutlined,
+  FileExcelOutlined,
+  FileWordOutlined,
+  FilePptOutlined,
+  RightOutlined,
+  DownOutlined,
+  FileAddOutlined,
+  FolderAddOutlined,
+  DeleteOutlined,
+} from '@ant-design/icons';
 import './DirectoryTree.css';
 
 export interface FileNode {
@@ -32,23 +50,56 @@ interface DeleteConfirm {
   showConfirm: boolean;
 }
 
-function FileIcon({ isDirectory, isOpen }: { isDirectory: boolean; isOpen?: boolean }) {
+function FileIcon({ isDirectory, isOpen, fileName }: { isDirectory: boolean; isOpen?: boolean; fileName?: string }) {
   if (isDirectory) {
-    return (
-      <svg className="file-icon" viewBox="0 0 24 24" fill="currentColor">
-        {isOpen ? (
-          <path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z" />
-        ) : (
-          <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
-        )}
-      </svg>
+    return isOpen ? (
+      <FolderOpenOutlined className="file-icon" />
+    ) : (
+      <FolderOutlined className="file-icon" />
     );
   }
-  return (
-    <svg className="file-icon" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
-    </svg>
-  );
+
+  // 根据文件后缀返回对应的图标
+  const ext = fileName?.split('.').pop()?.toLowerCase();
+  switch (ext) {
+    case 'md':
+    case 'markdown':
+      return <FileMarkdownOutlined className="file-icon" />;
+    case 'txt':
+    case 'log':
+    case 'ini':
+    case 'conf':
+    case 'config':
+      return <FileTextOutlined className="file-icon" />;
+    case 'jpg':
+    case 'jpeg':
+    case 'png':
+    case 'gif':
+    case 'bmp':
+    case 'webp':
+    case 'svg':
+      return <FileImageOutlined className="file-icon" />;
+    case 'zip':
+    case 'rar':
+    case '7z':
+    case 'tar':
+    case 'gz':
+      return <FileZipOutlined className="file-icon" />;
+    case 'pdf':
+      return <FilePdfOutlined className="file-icon" />;
+    case 'xls':
+    case 'xlsx':
+    case 'csv':
+      return <FileExcelOutlined className="file-icon" />;
+    case 'doc':
+    case 'docx':
+      return <FileWordOutlined className="file-icon" />;
+    case 'ppt':
+    case 'pptx':
+      return <FilePptOutlined className="file-icon" />;
+    default:
+      return <FileOutlined className="file-icon" />;
+  }
 }
 
 // 新建节点输入组件
@@ -202,12 +253,10 @@ function TreeNode({
       >
         {node.isDirectory && (
           <span className={`expand-icon ${isExpanded ? 'expanded' : ''}`}>
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
-            </svg>
+            {isExpanded ? <DownOutlined /> : <RightOutlined />}
           </span>
         )}
-        <FileIcon isDirectory={node.isDirectory} isOpen={isExpanded} />
+        <FileIcon isDirectory={node.isDirectory} isOpen={isExpanded} fileName={node.name} />
         <span className="file-name">{node.name}</span>
       </div>
       {node.isDirectory && isExpanded && (
@@ -252,24 +301,18 @@ function TreeNode({
             {node.isDirectory && (
               <>
                 <div className="context-menu-item" onClick={handleCreateFile}>
-                  <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
-                  </svg>
+                  <FileAddOutlined />
                   新建文件
                 </div>
                 <div className="context-menu-item" onClick={handleCreateFolder}>
-                  <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z" />
-                  </svg>
+                  <FolderAddOutlined />
                   新建文件夹
                 </div>
                 <div className="context-menu-divider" />
               </>
             )}
             <div className="context-menu-item delete" onClick={handleDelete}>
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
-              </svg>
+              <DeleteOutlined />
               删除
             </div>
           </div>
@@ -383,7 +426,7 @@ export function DirectoryTree({ files, currentFile, onFileSelect, onCreateFile, 
           </span>
           {rootPath && (
             <button className="open-finder-btn" onClick={handleOpenInFinder} title="在 Finder 中打开">
-              <EnvironmentOutlined />
+              <AimOutlined />
             </button>
           )}
         </div>
@@ -466,15 +509,11 @@ export function DirectoryTree({ files, currentFile, onFileSelect, onCreateFile, 
             style={{ left: rootContextMenuPos.x, top: rootContextMenuPos.y }}
           >
             <div className="context-menu-item" onClick={handleRootCreateFile}>
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
-              </svg>
+              <FileAddOutlined />
               新建文件
             </div>
             <div className="context-menu-item" onClick={handleRootCreateFolder}>
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z" />
-              </svg>
+              <FolderAddOutlined />
               新建文件夹
             </div>
           </div>

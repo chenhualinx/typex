@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { listen } from '@tauri-apps/api/event';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
+import { FileTextOutlined } from '@ant-design/icons';
 import { MarkdownEditor } from './components/MarkdownEditor';
 import { DirectoryTree, FileNode } from './components/DirectoryTree';
 import './App.css';
@@ -245,9 +246,7 @@ function App() {
             />
           ) : (
             <div className="empty-state">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
-              </svg>
+              <FileTextOutlined style={{ fontSize: 64, color: '#ccc' }} />
               <p>选择一个 Markdown 文件开始编辑</p>
               <p style={{ fontSize: '12px', color: '#999' }}>或使用菜单 文件 &gt; 打开文件夹</p>
             </div>
