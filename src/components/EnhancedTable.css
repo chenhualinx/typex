@@ -39,7 +39,7 @@
   position: absolute;
   top: -20px;
   width: 16px;
-  height: calc(100% + 40px);
+  height: calc(100% + 5px);
   cursor: pointer;
   z-index: 20;
   display: flex;
@@ -51,8 +51,8 @@
 .table-col-divider::before {
   content: '';
   position: absolute;
-  top: 20px;
-  bottom: 20px;
+  top: 0;
+  bottom: 0;
   left: 50%;
   width: 2px;
   background: transparent;
@@ -62,6 +62,12 @@
 
 .table-col-divider:hover::before {
   background: #1890ff;
+}
+
+/* 选中操作柄时隐藏分隔线 */
+.enhanced-table-wrapper:has(.table-col-handle.selected) .table-col-divider::before,
+.enhanced-table-wrapper:has(.table-row-handle.selected) .table-col-divider::before {
+  background: transparent !important;
 }
 
 /* 列加号按钮 - 放在上方 */
@@ -142,7 +148,7 @@
 .table-row-divider {
   position: absolute;
   left: -20px;
-  width: calc(100% + 40px);
+  width: calc(100% + 20px);
   height: 16px;
   cursor: pointer;
   z-index: 20;
@@ -155,8 +161,8 @@
 .table-row-divider::before {
   content: '';
   position: absolute;
-  left: 20px;
-  right: 20px;
+  left: 0;
+  right: 0;
   top: 50%;
   height: 2px;
   background: transparent;
@@ -166,6 +172,12 @@
 
 .table-row-divider:hover::before {
   background: #1890ff;
+}
+
+/* 选中操作柄时隐藏分隔线 */
+.enhanced-table-wrapper:has(.table-col-handle.selected) .table-row-divider::before,
+.enhanced-table-wrapper:has(.table-row-handle.selected) .table-row-divider::before {
+  background: transparent !important;
 }
 
 /* 行加号按钮 - 放在左侧 */
