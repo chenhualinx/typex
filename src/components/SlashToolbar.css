@@ -119,6 +119,9 @@
   background-color: #1890ff;
   color: white;
   transition: background-color 0.2s;
+  pointer-events: auto;
+  position: relative;
+  z-index: 10001;
 }
 
 .table-insert-btn:hover {

@@ -1,0 +1,220 @@
+/* 表格编辑器样式 */
+.vditor-table-wrapper {
+  position: relative;
+  display: inline-block;
+  margin: 8px 0;
+}
+
+/* 表格操作按钮容器 */
+.table-row-actions,
+.table-col-actions {
+  position: absolute;
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 100;
+}
+
+.vditor-table-wrapper:hover .table-row-actions,
+.vditor-table-wrapper:hover .table-col-actions,
+.vditor-table-wrapper.has-focus .table-row-actions,
+.vditor-table-wrapper.has-focus .table-col-actions {
+  opacity: 1;
+}
+
+/* 行操作按钮 - 显示在左侧 */
+.table-row-actions {
+  left: -28px;
+  top: 0;
+  bottom: 0;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* 列操作按钮 - 显示在上方 */
+.table-col-actions {
+  top: -28px;
+  left: 0;
+  right: 0;
+  flex-direction: row;
+  justify-content: center;
+}
+
+/* 操作按钮 */
+.table-action-btn {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  color: #666;
+  font-size: 14px;
+  padding: 0;
+}
+
+.table-action-btn:hover {
+  background: #f0f0f0;
+  color: #1890ff;
+  transform: scale(1.1);
+}
+
+.table-action-btn:active {
+  transform: scale(0.95);
+}
+
+/* 行操作按钮位置 */
+.table-row-action {
+  position: absolute;
+  left: -28px;
+  width: 24px;
+  height: 24px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+/* 列操作按钮位置 */
+.table-col-action {
+  position: absolute;
+  top: -28px;
+  width: 24px;
+  height: 24px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.vditor-table-wrapper:hover .table-row-action,
+.vditor-table-wrapper:hover .table-col-action,
+.vditor-table-wrapper.has-focus .table-row-action,
+.vditor-table-wrapper.has-focus .table-col-action {
+  opacity: 1;
+}
+
+/* 表格样式优化 */
+.vditor-table-wrapper table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.vditor-table-wrapper th,
+.vditor-table-wrapper td {
+  border: 1px solid #d9d9d9;
+  padding: 8px 12px;
+  min-width: 60px;
+  position: relative;
+}
+
+.vditor-table-wrapper th {
+  background: #fafafa;
+  font-weight: 600;
+}
+
+.vditor-table-wrapper td {
+  background: #fff;
+}
+
+/* 单元格悬停效果 */
+.vditor-table-wrapper td:hover,
+.vditor-table-wrapper th:hover {
+  background: #e6f7ff;
+}
+
+/* 选中单元格 */
+.vditor-table-wrapper td.selected,
+.vditor-table-wrapper th.selected {
+  background: #bae7ff;
+}
+
+/* 添加行/列的指示器 */
+.table-insert-indicator {
+  position: absolute;
+  background: #1890ff;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.table-insert-indicator.row {
+  left: -4px;
+  width: 4px;
+  top: 0;
+  bottom: 0;
+}
+
+.table-insert-indicator.col {
+  top: -4px;
+  height: 4px;
+  left: 0;
+  right: 0;
+}
+
+.vditor-table-wrapper:hover .table-insert-indicator {
+  opacity: 0.3;
+}
+
+/* 角落添加按钮 */
+.table-corner-btn {
+  position: absolute;
+  top: -28px;
+  left: -28px;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: #1890ff;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  font-size: 12px;
+}
+
+.vditor-table-wrapper:hover .table-corner-btn,
+.vditor-table-wrapper.has-focus .table-corner-btn {
+  opacity: 1;
+}
+
+.table-corner-btn:hover {
+  background: #40a9ff;
+  transform: scale(1.1);
+}
+
+/* 上下文菜单 */
+.table-context-menu {
+  position: absolute;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  padding: 4px 0;
+  min-width: 160px;
+  z-index: 1000;
+}
+
+.table-context-menu-item {
+  padding: 8px 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.2s ease;
+}
+
+.table-context-menu-item:hover {
+  background: #f5f5f5;
+}
+
+.table-context-menu-divider {
+  height: 1px;
+  background: #e8e8e8;
+  margin: 4px 0;
+}

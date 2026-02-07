@@ -42,8 +42,10 @@ export function SlashToolbar({ isOpen, position, onClose, onInsertTable }: Slash
   }, [isOpen, rows, cols, onClose]);
 
   const handleInsert = () => {
+    console.log('[SlashToolbar] Insert button clicked');
     const validRows = Math.max(1, Math.min(20, rows));
     const validCols = Math.max(1, Math.min(10, cols));
+    console.log('[SlashToolbar] Calling onInsertTable with', validRows, 'rows,', validCols, 'cols');
     onInsertTable(validRows, validCols);
   };
 

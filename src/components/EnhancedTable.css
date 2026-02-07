@@ -1,0 +1,245 @@
+/* 增强表格样式 */
+.enhanced-table-wrapper {
+  position: relative;
+  display: inline-block;
+  margin: 24px 0;
+}
+
+.enhanced-table-wrapper table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.enhanced-table-wrapper th,
+.enhanced-table-wrapper td {
+  border: 1px solid #e0e0e0;
+  padding: 8px 12px;
+  min-width: 60px;
+  position: relative;
+  transition: background-color 0.2s ease;
+}
+
+.enhanced-table-wrapper th {
+  background: #fafafa;
+  font-weight: 600;
+}
+
+.enhanced-table-wrapper td {
+  background: #fff;
+}
+
+/* 悬停效果 */
+.enhanced-table-wrapper td:hover,
+.enhanced-table-wrapper th:hover {
+  background: #f5f5f5;
+}
+
+/* 列分隔线区域 - 悬浮检测 */
+.table-col-divider {
+  position: absolute;
+  top: -20px;
+  width: 16px;
+  height: calc(100% + 40px);
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: auto;
+}
+
+.table-col-divider::before {
+  content: '';
+  position: absolute;
+  top: 20px;
+  bottom: 20px;
+  left: 50%;
+  width: 2px;
+  background: transparent;
+  transform: translateX(-50%);
+  transition: background 0.2s ease;
+}
+
+.table-col-divider:hover::before {
+  background: #1890ff;
+}
+
+/* 列加号按钮 - 放在上方 */
+.table-col-add-btn {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: #1890ff;
+  color: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  box-shadow: 0 2px 6px rgba(24, 144, 255, 0.4);
+  transition: all 0.2s ease;
+  opacity: 0;
+  transform: scale(0);
+  margin-bottom: 4px;
+}
+
+.table-col-divider:hover .table-col-add-btn,
+.table-col-add-btn:hover {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.table-col-add-btn:hover {
+  background: #40a9ff;
+  transform: scale(1.1);
+}
+
+/* 列删除按钮 - 放在下方 */
+.table-delete-col-btn {
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: #ff4d4f;
+  color: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(255, 77, 79, 0.4);
+  transition: all 0.2s ease;
+  opacity: 0;
+  transform: scale(0);
+  margin-top: 4px;
+}
+
+.table-col-divider:hover .table-delete-col-btn,
+.table-delete-col-btn:hover {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.table-delete-col-btn:hover {
+  background: #ff7875;
+  transform: scale(1.1);
+}
+
+/* 行分隔线区域 - 悬浮检测 */
+.table-row-divider {
+  position: absolute;
+  left: -20px;
+  width: calc(100% + 40px);
+  height: 16px;
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  pointer-events: auto;
+}
+
+.table-row-divider::before {
+  content: '';
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  top: 50%;
+  height: 2px;
+  background: transparent;
+  transform: translateY(-50%);
+  transition: background 0.2s ease;
+}
+
+.table-row-divider:hover::before {
+  background: #1890ff;
+}
+
+/* 行加号按钮 - 放在左侧 */
+.table-row-add-btn {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: #1890ff;
+  color: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  box-shadow: 0 2px 6px rgba(24, 144, 255, 0.4);
+  transition: all 0.2s ease;
+  opacity: 0;
+  transform: scale(0);
+  margin-right: 4px;
+}
+
+.table-row-divider:hover .table-row-add-btn,
+.table-row-add-btn:hover {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.table-row-add-btn:hover {
+  background: #40a9ff;
+  transform: scale(1.1);
+}
+
+/* 行删除按钮 - 放在右侧 */
+.table-delete-row-btn {
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: #ff4d4f;
+  color: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(255, 77, 79, 0.4);
+  transition: all 0.2s ease;
+  opacity: 0;
+  transform: scale(0);
+  margin-left: 4px;
+}
+
+.table-row-divider:hover .table-delete-row-btn,
+.table-delete-row-btn:hover {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.table-delete-row-btn:hover {
+  background: #ff7875;
+  transform: scale(1.1);
+}
+
+/* 选中单元格 */
+.enhanced-table-wrapper td.selected,
+.enhanced-table-wrapper th.selected {
+  background: #e6f7ff !important;
+  outline: 2px solid #1890ff;
+  outline-offset: -2px;
+}
+
+/* 分隔线容器 */
+.table-dividers-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.table-dividers-container > * {
+  pointer-events: auto;
+}
