@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import Vditor from 'vditor';
 import 'vditor/dist/index.css';
+import { SlashToolbar } from './SlashToolbar';
 
 interface MarkdownEditorProps {
   content: string;
@@ -12,6 +13,112 @@ export function MarkdownEditor({ content, onChange, onSave }: MarkdownEditorProp
   const vditorRef = useRef<HTMLDivElement>(null);
   const vditorInstanceRef = useRef<Vditor | null>(null);
   const resizeTimerRef = useRef<number | null>(null);
+  const slashRangeRef = useRef<Range | null>(null);
+
+  const [showSlashToolbar, setShowSlashToolbar] = useState(false);
+  const [toolbarPosition, setToolbarPosition] = useState({ x: 0, y: 0 });
+
+  // 获取光标位置
+  const getCursorPosition = useCallback(() => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return { x: 0, y: 0 };
+
+    const range = selection.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+
+    return {
+      x: rect.left,
+      y: rect.bottom + 8,
+    };
+  }, []);
+
+  // 删除 '/' 字符
+  const removeSlash = useCallback(() => {
+    if (!slashRangeRef.current) return;
+
+    try {
+      const range = slashRangeRef.current;
+      const textNode = range.startContainer;
+      const offset = range.startOffset;
+
+      if (textNode.nodeType === Node.TEXT_NODE) {
+        const text = textNode.textContent || '';
+        // 删除 '/' 字符
+        const newText = text.substring(0, offset - 1) + text.substring(offset);
+        textNode.textContent = newText;
+
+        // 恢复光标位置
+        const selection = window.getSelection();
+        if (selection) {
+          const newRange = document.createRange();
+          newRange.setStart(textNode, offset - 1);
+          newRange.collapse(true);
+          selection.removeAllRanges();
+          selection.addRange(newRange);
+        }
+      }
+    } catch (e) {
+      console.error('Error removing slash:', e);
+    }
+
+    slashRangeRef.current = null;
+  }, []);
+
+  // 插入表格
+  const insertTable = useCallback((rows: number, cols: number) => {
+    const vditor = vditorInstanceRef.current;
+    if (!vditor) return;
+
+    // 删除 '/' 字符
+    removeSlash();
+
+    // 生成表格 Markdown
+    let tableMarkdown = '\n';
+    // 表头
+    tableMarkdown += '|' + ' 列 '.repeat(cols) + '|\n';
+    // 分隔符
+    tableMarkdown += '|' + ' --- |'.repeat(cols) + '\n';
+    // 数据行
+    for (let i = 0; i < rows - 1; i++) {
+      tableMarkdown += '|' + '     |'.repeat(cols) + '\n';
+    }
+    tableMarkdown += '\n';
+
+    setTimeout(() => {
+      vditor.insertValue(tableMarkdown);
+    }, 0);
+  }, [removeSlash]);
+
+  // 处理 '/' 快捷键
+  const handleSlashKey = useCallback((event: KeyboardEvent) => {
+    if (event.key === '/') {
+      // 保存当前选区，用于后续删除 '/'
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0).cloneRange();
+        slashRangeRef.current = range;
+      }
+
+      const position = getCursorPosition();
+      setToolbarPosition(position);
+      setShowSlashToolbar(true);
+      return false;
+    }
+    return true;
+  }, [getCursorPosition]);
+
+  // 处理工具栏关闭
+  const handleToolbarClose = useCallback(() => {
+    setShowSlashToolbar(false);
+    // 如果关闭时没有选择操作，需要删除 '/'
+    removeSlash();
+  }, [removeSlash]);
+
+  // 处理插入表格
+  const handleInsertTable = useCallback((rows: number, cols: number) => {
+    setShowSlashToolbar(false);
+    insertTable(rows, cols);
+  }, [insertTable]);
 
   useEffect(() => {
     const element = vditorRef.current;
@@ -32,47 +139,9 @@ export function MarkdownEditor({ content, onChange, onSave }: MarkdownEditorProp
             current: 'light',
           },
         },
-        toolbar: [
-          'emoji',
-          'headings',
-          'bold',
-          'italic',
-          'strike',
-          'link',
-          '|',
-          'list',
-          'ordered-list',
-          'check',
-          'outdent',
-          'indent',
-          '|',
-          'quote',
-          'line',
-          'code',
-          'inline-code',
-          'insert-before',
-          'insert-after',
-          '|',
-          'upload',
-          'record',
-          'table',
-          '|',
-          'undo',
-          'redo',
-          '|',
-          'fullscreen',
-          'edit-mode',
-          {
-            name: 'save',
-            tip: '保存 (Ctrl+S / Cmd+S)',
-            tipPosition: 's',
-            className: 'right',
-            icon: '<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg"><path d="M17.59 3.59c-.38-.38-.89-.59-1.42-.59H5a2 2 0 00-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V7.83c0-.53-.21-1.04-.59-1.41l-2.82-2.83zM12 19c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm1-10H7c-1.1 0-2-.9-2-2s.9-2 2-2h6c1.1 0 2 .9 2 2s-.9 2-2 2z" fill="currentColor"/></svg>',
-            click: () => {
-              onSave?.();
-            },
-          },
-        ],
+        toolbarConfig: {
+          hide: true,
+        },
         input: (value: string) => {
           onChange(value);
         },
@@ -83,6 +152,11 @@ export function MarkdownEditor({ content, onChange, onSave }: MarkdownEditorProp
         },
         // 添加快捷键支持
         keydown: (event: KeyboardEvent) => {
+          // '/' 键触发工具栏
+          if (event.key === '/' && !showSlashToolbar) {
+            return handleSlashKey(event);
+          }
+
           // Ctrl+S 或 Cmd+S 保存
           if ((event.ctrlKey || event.metaKey) && event.key === 's') {
             event.preventDefault();
@@ -130,5 +204,15 @@ export function MarkdownEditor({ content, onChange, onSave }: MarkdownEditorProp
     };
   }, []);
 
-  return <div ref={vditorRef} style={{ height: '100%', flex: 1, minWidth: 0 }} />;
+  return (
+    <>
+      <div ref={vditorRef} style={{ height: '100%', flex: 1, minWidth: 0 }} />
+      <SlashToolbar
+        isOpen={showSlashToolbar}
+        position={toolbarPosition}
+        onClose={handleToolbarClose}
+        onInsertTable={handleInsertTable}
+      />
+    </>
+  );
 }

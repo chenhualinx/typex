@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import {
-  AimOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
   FolderOutlined,
   FolderOpenOutlined,
   FileOutlined,
@@ -17,6 +18,7 @@ import {
   FileAddOutlined,
   FolderAddOutlined,
   DeleteOutlined,
+  EditOutlined,
 } from '@ant-design/icons';
 import './DirectoryTree.css';
 
@@ -34,14 +36,23 @@ interface DirectoryTreeProps {
   onCreateFile?: (parentPath: string, name: string) => void;
   onCreateFolder?: (parentPath: string, name: string) => void;
   onDeleteFiles?: (paths: string[]) => void;
+  onRenameFile?: (oldPath: string, newPath: string) => void;
   onOpenInFinder?: (path: string) => void;
   rootPath?: string;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 // 用于标识正在创建的新节点
 interface CreatingNode {
   parentPath: string;
   type: 'file' | 'folder';
+}
+
+// 重命名状态
+interface RenamingNode {
+  path: string;
+  name: string;
 }
 
 // 删除确认状态
@@ -114,11 +125,18 @@ function NewNodeInput({
   onCancel: () => void;
   level: number;
 }) {
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState(type === 'file' ? '.md' : '');
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
+    if (type === 'file') {
+      // 选中 .md 之前的部分
+      const dotIndex = value.lastIndexOf('.');
+      if (dotIndex > 0) {
+        inputRef.current?.setSelectionRange(0, dotIndex);
+      }
+    }
   }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -159,6 +177,63 @@ function NewNodeInput({
   );
 }
 
+// 重命名输入组件
+function RenameInput({
+  initialName,
+  onConfirm,
+  onCancel,
+}: {
+  initialName: string;
+  onConfirm: (name: string) => void;
+  onCancel: () => void;
+}) {
+  const [value, setValue] = useState(initialName);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    // 只选中文件名部分（不含后缀）
+    const dotIndex = initialName.lastIndexOf('.');
+    if (dotIndex > 0) {
+      inputRef.current?.setSelectionRange(0, dotIndex);
+    } else {
+      inputRef.current?.select();
+    }
+  }, []);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      if (value.trim() && value.trim() !== initialName) {
+        onConfirm(value.trim());
+      } else {
+        onCancel();
+      }
+    } else if (e.key === 'Escape') {
+      onCancel();
+    }
+  };
+
+  const handleBlur = () => {
+    if (value.trim() && value.trim() !== initialName) {
+      onConfirm(value.trim());
+    } else {
+      onCancel();
+    }
+  };
+
+  return (
+    <input
+      ref={inputRef}
+      className="rename-input"
+      type="text"
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onKeyDown={handleKeyDown}
+      onBlur={handleBlur}
+    />
+  );
+}
+
 function TreeNode({
   node,
   currentFile,
@@ -168,8 +243,11 @@ function TreeNode({
   onCreateFile,
   onCreateFolder,
   onDeleteRequest,
+  onRenameRequest,
   creatingNode,
+  renamingNode,
   onCancelCreating,
+  onCancelRenaming,
   level = 0,
 }: {
   node: FileNode;
@@ -180,8 +258,11 @@ function TreeNode({
   onCreateFile?: (parentPath: string, name: string) => void;
   onCreateFolder?: (parentPath: string, name: string) => void;
   onDeleteRequest?: (paths: string[]) => void;
+  onRenameRequest?: (path: string, newName: string) => void;
   creatingNode: CreatingNode | null;
+  renamingNode: RenamingNode | null;
   onCancelCreating: () => void;
+  onCancelRenaming: () => void;
   level?: number;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -192,8 +273,11 @@ function TreeNode({
 
   // 检查是否正在此节点下创建新节点
   const isCreatingHere = creatingNode?.parentPath === node.path;
+  // 检查是否正在重命名此节点
+  const isRenamingHere = renamingNode?.path === node.path;
 
   const handleClick = (e: React.MouseEvent) => {
+    if (isRenamingHere) return;
     if (e.ctrlKey || e.metaKey) {
       // Ctrl/Cmd + 点击 = 多选
       e.stopPropagation();
@@ -235,12 +319,22 @@ function TreeNode({
     onDeleteRequest?.(pathsToDelete);
   };
 
+  const handleRename = () => {
+    setShowContextMenu(false);
+    onRenameRequest?.(node.path, '');
+  };
+
   const handleConfirmCreate = (name: string) => {
     if (creatingNode?.type === 'file') {
       onCreateFile?.(node.path, name);
     } else {
       onCreateFolder?.(node.path, name);
     }
+  };
+
+  const handleConfirmRename = (newName: string) => {
+    onRenameRequest?.(node.path, newName);
+    onCancelRenaming();
   };
 
   return (
@@ -257,7 +351,15 @@ function TreeNode({
           </span>
         )}
         <FileIcon isDirectory={node.isDirectory} isOpen={isExpanded} fileName={node.name} />
-        <span className="file-name">{node.name}</span>
+        {isRenamingHere ? (
+          <RenameInput
+            initialName={node.name}
+            onConfirm={handleConfirmRename}
+            onCancel={onCancelRenaming}
+          />
+        ) : (
+          <span className="file-name">{node.name}</span>
+        )}
       </div>
       {node.isDirectory && isExpanded && (
         <div className="tree-children">
@@ -281,8 +383,11 @@ function TreeNode({
               onCreateFile={onCreateFile}
               onCreateFolder={onCreateFolder}
               onDeleteRequest={onDeleteRequest}
+              onRenameRequest={onRenameRequest}
               creatingNode={creatingNode}
+              renamingNode={renamingNode}
               onCancelCreating={onCancelCreating}
+              onCancelRenaming={onCancelRenaming}
               level={level + 1}
             />
           ))}
@@ -298,8 +403,13 @@ function TreeNode({
             className="context-menu"
             style={{ left: contextMenuPos.x, top: contextMenuPos.y }}
           >
+            <div className="context-menu-item" onClick={handleRename}>
+              <EditOutlined />
+              重命名
+            </div>
             {node.isDirectory && (
               <>
+                <div className="context-menu-divider" />
                 <div className="context-menu-item" onClick={handleCreateFile}>
                   <FileAddOutlined />
                   新建文件
@@ -308,9 +418,9 @@ function TreeNode({
                   <FolderAddOutlined />
                   新建文件夹
                 </div>
-                <div className="context-menu-divider" />
               </>
             )}
+            <div className="context-menu-divider" />
             <div className="context-menu-item delete" onClick={handleDelete}>
               <DeleteOutlined />
               删除
@@ -322,8 +432,9 @@ function TreeNode({
   );
 }
 
-export function DirectoryTree({ files, currentFile, onFileSelect, onCreateFile, onCreateFolder, onDeleteFiles, onOpenInFinder, rootPath }: DirectoryTreeProps) {
+export function DirectoryTree({ files, currentFile, onFileSelect, onCreateFile, onCreateFolder, onDeleteFiles, onRenameFile, rootPath, collapsed, onToggleCollapse }: DirectoryTreeProps) {
   const [creatingNode, setCreatingNode] = useState<CreatingNode | null>(null);
+  const [renamingNode, setRenamingNode] = useState<RenamingNode | null>(null);
   const [showRootContextMenu, setShowRootContextMenu] = useState(false);
   const [rootContextMenuPos, setRootContextMenuPos] = useState({ x: 0, y: 0 });
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
@@ -353,6 +464,27 @@ export function DirectoryTree({ files, currentFile, onFileSelect, onCreateFile, 
 
   const handleCancelCreating = () => {
     setCreatingNode(null);
+  };
+
+  const handleRenameRequest = (path: string, newName: string) => {
+    if (newName === '') {
+      // 开始重命名，显示输入框
+      const name = path.split(/[\\/]/).pop() || '';
+      setRenamingNode({ path, name });
+    } else {
+      // 确认重命名
+      const separator = path.includes('\\') ? '\\' : '/';
+      const lastSepIndex = path.lastIndexOf(separator);
+      const parentPath = lastSepIndex >= 0 ? path.substring(0, lastSepIndex + 1) : '';
+      const newPath = parentPath + newName;
+      console.log('Renaming:', path, '->', newPath);
+      onRenameFile?.(path, newPath);
+      setRenamingNode(null);
+    }
+  };
+
+  const handleCancelRenaming = () => {
+    setRenamingNode(null);
   };
 
   // 检查是否在根目录创建
@@ -411,11 +543,15 @@ export function DirectoryTree({ files, currentFile, onFileSelect, onCreateFile, 
     setSelectedPaths(new Set());
   };
 
-  const handleOpenInFinder = () => {
-    if (rootPath) {
-      onOpenInFinder?.(rootPath);
-    }
-  };
+  if (collapsed) {
+    return (
+      <div className="directory-tree collapsed">
+        <button className="toggle-sidebar-btn" onClick={onToggleCollapse} title="展开目录树 (Cmd+B)">
+          <MenuUnfoldOutlined />
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="directory-tree">
@@ -424,11 +560,9 @@ export function DirectoryTree({ files, currentFile, onFileSelect, onCreateFile, 
           <span className="tree-header-path" title={rootPath}>
             {rootPath ? rootPath.split(/[\\/]/).pop() || '文件目录' : '文件目录'}
           </span>
-          {rootPath && (
-            <button className="open-finder-btn" onClick={handleOpenInFinder} title="在 Finder 中打开">
-              <AimOutlined />
-            </button>
-          )}
+          <button className="toggle-sidebar-btn" onClick={onToggleCollapse} title="折叠目录树 (Cmd+B)">
+            <MenuFoldOutlined />
+          </button>
         </div>
         {selectedPaths.size > 0 && (
           <div className="selection-info">
@@ -493,8 +627,11 @@ export function DirectoryTree({ files, currentFile, onFileSelect, onCreateFile, 
             onCreateFile={handleCreateFile}
             onCreateFolder={handleCreateFolder}
             onDeleteRequest={handleDeleteRequest}
+            onRenameRequest={handleRenameRequest}
             creatingNode={creatingNode}
+            renamingNode={renamingNode}
             onCancelCreating={handleCancelCreating}
+            onCancelRenaming={handleCancelRenaming}
           />
         ))}
       </div>

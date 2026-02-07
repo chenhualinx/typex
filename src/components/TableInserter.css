@@ -1,0 +1,88 @@
+.table-inserter-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.table-inserter-modal {
+  background-color: white;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  padding: 16px;
+  min-width: 240px;
+}
+
+.table-inserter-title {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 12px;
+  color: #333;
+}
+
+.table-inserter-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  gap: 10px;
+}
+
+.table-inserter-label {
+  font-size: 13px;
+  color: #666;
+  min-width: 50px;
+}
+
+.table-inserter-input {
+  flex: 1;
+  padding: 5px 8px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 13px;
+  outline: none;
+  width: 80px;
+}
+
+.table-inserter-input:focus {
+  border-color: #40a9ff;
+}
+
+.table-inserter-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.table-inserter-btn {
+  padding: 5px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  border: 1px solid #d9d9d9;
+  background-color: white;
+  color: #333;
+  transition: all 0.2s;
+}
+
+.table-inserter-btn:hover {
+  border-color: #40a9ff;
+  color: #40a9ff;
+}
+
+.table-inserter-btn.primary {
+  background-color: #1890ff;
+  border-color: #1890ff;
+  color: white;
+}
+
+.table-inserter-btn.primary:hover {
+  background-color: #40a9ff;
+  border-color: #40a9ff;
+}

@@ -110,6 +110,13 @@ async fn delete_folder(path: String) -> Result<(), String> {
         .map_err(|e| e.to_string())
 }
 
+#[command]
+async fn rename_file(old_path: String, new_path: String) -> Result<(), String> {
+    tokio::fs::rename(&old_path, &new_path)
+        .await
+        .map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -124,7 +131,8 @@ pub fn run() {
             create_file,
             create_folder,
             delete_file,
-            delete_folder
+            delete_folder,
+            rename_file
         ])
         .setup(|app| {
             // 创建菜单
@@ -137,20 +145,30 @@ pub fn run() {
                 .id("save_file")
                 .accelerator("Cmd+S")
                 .build(app)?;
-            
+
             let separator = PredefinedMenuItem::separator(app)?;
+
+            let toggle_sidebar = MenuItemBuilder::new("切换目录树")
+                .id("toggle_sidebar")
+                .accelerator("Cmd+B")
+                .build(app)?;
 
             // 设置菜单
             let settings = SubmenuBuilder::new(app,"settings")
                 .build()?;
-            
+
             // 文件菜单
             let file_menu = SubmenuBuilder::new(app, "文件")
                 .item(&open_folder)
                 .item(&separator)
                 .item(&save_file)
                 .build()?;
-            
+
+            // 视图菜单
+            let view_menu = SubmenuBuilder::new(app, "视图")
+                .item(&toggle_sidebar)
+                .build()?;
+
             // 编辑菜单
             let edit_menu = SubmenuBuilder::new(app, "编辑")
                 .item(&PredefinedMenuItem::undo(app, None)?)
@@ -161,16 +179,17 @@ pub fn run() {
                 .item(&PredefinedMenuItem::paste(app, None)?)
                 .item(&PredefinedMenuItem::select_all(app, None)?)
                 .build()?;
-            
+
             // 主菜单
             let menu = MenuBuilder::new(app)
                 .item(&settings)
                 .item(&file_menu)
                 .item(&edit_menu)
+                .item(&view_menu)
                 .build()?;
-            
+
             app.set_menu(menu)?;
-            
+
             // 处理菜单事件
             app.on_menu_event(|app, event| {
                 match event.id().as_ref() {
@@ -179,6 +198,9 @@ pub fn run() {
                     }
                     "save_file" => {
                         let _ = app.emit("menu-event", "save_file");
+                    }
+                    "toggle_sidebar" => {
+                        let _ = app.emit("menu-event", "toggle_sidebar");
                     }
                     _ => {}
                 }

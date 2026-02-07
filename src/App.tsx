@@ -24,6 +24,8 @@ function convertFileNode(rustNode: RustFileNode): FileNode {
   };
 }
 
+const SIDEBAR_COLLAPSED_KEY = 'typex:sidebar-collapsed';
+
 function App() {
   const [files, setFiles] = useState<FileNode[]>([]);
   const [currentFile, setCurrentFile] = useState<string | null>(null);
@@ -32,6 +34,10 @@ function App() {
   const [isModified, setIsModified] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
   const [openedFolderPath, setOpenedFolderPath] = useState<string | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    const saved = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+    return saved ? JSON.parse(saved) : false;
+  });
 
   // 使用 ref 来存储最新的状态，避免闭包问题
   const currentFileRef = useRef(currentFile);
@@ -200,6 +206,28 @@ function App() {
     }
   }, []);
 
+  const handleRenameFile = useCallback(async (oldPath: string, newPath: string) => {
+    try {
+      await invoke('rename_file', { oldPath, newPath });
+      await refreshDirectory();
+      // 如果重命名的是当前打开的文件，更新当前文件路径
+      if (currentFile === oldPath) {
+        setCurrentFile(newPath);
+      }
+    } catch (error) {
+      console.error('Failed to rename file:', error);
+      alert('重命名失败: ' + error);
+    }
+  }, [currentFile, refreshDirectory]);
+
+  const handleToggleSidebar = useCallback(() => {
+    setSidebarCollapsed((prev: boolean) => {
+      const newValue = !prev;
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, JSON.stringify(newValue));
+      return newValue;
+    });
+  }, []);
+
   // 监听菜单事件
   useEffect(() => {
     const unlisten = listen('menu-event', (event) => {
@@ -213,13 +241,29 @@ function App() {
         case 'save_file':
           handleSave();
           break;
+        case 'toggle_sidebar':
+          handleToggleSidebar();
+          break;
       }
     });
 
     return () => {
       unlisten.then(fn => fn());
     };
-  }, [handleOpenFolder, handleSave]);
+  }, [handleOpenFolder, handleSave, handleToggleSidebar]);
+
+  // 监听键盘快捷键 Cmd+B / Ctrl+B
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
+        e.preventDefault();
+        handleToggleSidebar();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleToggleSidebar]);
 
   return (
     <div className="app">
@@ -232,8 +276,11 @@ function App() {
             onCreateFile={handleCreateFile}
             onCreateFolder={handleCreateFolder}
             onDeleteFiles={handleDeleteFiles}
+            onRenameFile={handleRenameFile}
             onOpenInFinder={handleOpenInFinder}
             rootPath={rootPath}
+            collapsed={sidebarCollapsed}
+            onToggleCollapse={handleToggleSidebar}
           />
         )}
         <div className="editor-container">
