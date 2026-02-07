@@ -81,6 +81,21 @@ async fn write_file(path: String, content: String) -> Result<(), String> {
         .map_err(|e| e.to_string())
 }
 
+#[command]
+async fn create_file(path: String) -> Result<(), String> {
+    tokio::fs::File::create(&path)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[command]
+async fn create_folder(path: String) -> Result<(), String> {
+    tokio::fs::create_dir(&path)
+        .await
+        .map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -91,7 +106,9 @@ pub fn run() {
             greet,
             read_directory,
             read_file,
-            write_file
+            write_file,
+            create_file,
+            create_folder
         ])
         .setup(|app| {
             // 创建菜单

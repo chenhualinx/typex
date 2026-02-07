@@ -63,6 +63,29 @@ function App() {
     }
   }, []);
 
+  const refreshDirectory = useCallback(async () => {
+    if (files.length === 0) return;
+    
+    // 获取根目录路径
+    const getRootPath = (nodes: FileNode[]): string | null => {
+      if (nodes.length === 0) return null;
+      const firstNode = nodes[0];
+      const pathParts = firstNode.path.split(/[\\/]/);
+      pathParts.pop();
+      return pathParts.join('/');
+    };
+    
+    const rootPath = getRootPath(files);
+    if (!rootPath) return;
+    
+    try {
+      const result = await invoke<RustFileNode[]>('read_directory', { path: rootPath });
+      setFiles(result.map(convertFileNode));
+    } catch (error) {
+      console.error('Failed to refresh directory:', error);
+    }
+  }, [files]);
+
   const handleOpenFolder = useCallback(async () => {
     try {
       const selected = await open({
@@ -78,6 +101,35 @@ function App() {
       console.error('Failed to open folder:', error);
     }
   }, []);
+
+  const handleCreateFile = useCallback(async (parentPath: string, name: string) => {
+    try {
+      const newPath = `${parentPath}/${name}`;
+      await invoke('create_file', { path: newPath });
+      await refreshDirectory();
+      // 自动打开新创建的文件
+      const content = await invoke<string>('read_file', { path: newPath });
+      setCurrentFile(newPath);
+      setCurrentContent(content);
+      setOriginalContent(content);
+      setIsModified(false);
+      setEditorKey(prev => prev + 1);
+    } catch (error) {
+      console.error('Failed to create file:', error);
+      alert('创建文件失败: ' + error);
+    }
+  }, [refreshDirectory]);
+
+  const handleCreateFolder = useCallback(async (parentPath: string, name: string) => {
+    try {
+      const newPath = `${parentPath}/${name}`;
+      await invoke('create_folder', { path: newPath });
+      await refreshDirectory();
+    } catch (error) {
+      console.error('Failed to create folder:', error);
+      alert('创建文件夹失败: ' + error);
+    }
+  }, [refreshDirectory]);
 
   const handleFileSelect = useCallback(async (path: string) => {
     console.log('File selected:', path);
@@ -109,11 +161,6 @@ function App() {
     setIsModified(content !== originalContent);
   }, [originalContent]);
 
-  const getFileName = (path: string | null) => {
-    if (!path) return '';
-    return path.split('/').pop() || path.split('\\').pop() || '';
-  };
-
   // 监听菜单事件
   useEffect(() => {
     const unlisten = listen('menu-event', (event) => {
@@ -143,6 +190,8 @@ function App() {
             files={files}
             currentFile={currentFile}
             onFileSelect={handleFileSelect}
+            onCreateFile={handleCreateFile}
+            onCreateFolder={handleCreateFolder}
           />
         )}
         <div className="editor-container">

@@ -81,3 +81,61 @@
 .tree-children {
   position: relative;
 }
+
+.context-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999;
+}
+
+.context-menu {
+  position: fixed;
+  background-color: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  min-width: 140px;
+  padding: 4px 0;
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #333;
+  transition: background-color 0.2s;
+}
+
+.context-menu-item:hover {
+  background-color: #f5f5f5;
+}
+
+.context-menu-item svg {
+  width: 16px;
+  height: 16px;
+  color: #666;
+}
+
+/* 新建节点输入框样式 */
+.new-node-item {
+  background-color: #e3f2fd;
+}
+
+.new-node-input {
+  flex: 1;
+  border: 1px solid #2196f3;
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 13px;
+  outline: none;
+  background-color: white;
+  color: #333;
+  min-width: 0;
+}
