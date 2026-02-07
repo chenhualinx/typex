@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { EnvironmentOutlined } from '@ant-design/icons';
 import './DirectoryTree.css';
 
 export interface FileNode {
@@ -15,6 +16,7 @@ interface DirectoryTreeProps {
   onCreateFile?: (parentPath: string, name: string) => void;
   onCreateFolder?: (parentPath: string, name: string) => void;
   onDeleteFiles?: (paths: string[]) => void;
+  onOpenInFinder?: (path: string) => void;
   rootPath?: string;
 }
 
@@ -277,7 +279,7 @@ function TreeNode({
   );
 }
 
-export function DirectoryTree({ files, currentFile, onFileSelect, onCreateFile, onCreateFolder, onDeleteFiles, rootPath }: DirectoryTreeProps) {
+export function DirectoryTree({ files, currentFile, onFileSelect, onCreateFile, onCreateFolder, onDeleteFiles, onOpenInFinder, rootPath }: DirectoryTreeProps) {
   const [creatingNode, setCreatingNode] = useState<CreatingNode | null>(null);
   const [showRootContextMenu, setShowRootContextMenu] = useState(false);
   const [rootContextMenuPos, setRootContextMenuPos] = useState({ x: 0, y: 0 });
@@ -366,10 +368,25 @@ export function DirectoryTree({ files, currentFile, onFileSelect, onCreateFile, 
     setSelectedPaths(new Set());
   };
 
+  const handleOpenInFinder = () => {
+    if (rootPath) {
+      onOpenInFinder?.(rootPath);
+    }
+  };
+
   return (
     <div className="directory-tree">
       <div className="tree-header">
-        <span>文件目录</span>
+        <div className="tree-header-content">
+          <span className="tree-header-path" title={rootPath}>
+            {rootPath ? rootPath.split(/[\\/]/).pop() || '文件目录' : '文件目录'}
+          </span>
+          {rootPath && (
+            <button className="open-finder-btn" onClick={handleOpenInFinder} title="在 Finder 中打开">
+              <EnvironmentOutlined />
+            </button>
+          )}
+        </div>
         {selectedPaths.size > 0 && (
           <div className="selection-info">
             <span className="selection-count">已选择 {selectedPaths.size} 项</span>

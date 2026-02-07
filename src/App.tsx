@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { listen } from '@tauri-apps/api/event';
+import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { MarkdownEditor } from './components/MarkdownEditor';
 import { DirectoryTree, FileNode } from './components/DirectoryTree';
 import './App.css';
@@ -29,6 +30,7 @@ function App() {
   const [originalContent, setOriginalContent] = useState('');
   const [isModified, setIsModified] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
+  const [openedFolderPath, setOpenedFolderPath] = useState<string | null>(null);
 
   // 使用 ref 来存储最新的状态，避免闭包问题
   const currentFileRef = useRef(currentFile);
@@ -63,20 +65,10 @@ function App() {
     }
   }, []);
 
-  // 获取根目录路径
-  const getRootPath = useCallback((nodes: FileNode[]): string | null => {
-    if (nodes.length === 0) return null;
-    const firstNode = nodes[0];
-    const pathParts = firstNode.path.split(/[\\/]/);
-    pathParts.pop();
-    return pathParts.join('/');
-  }, []);
-
-  const rootPath = getRootPath(files);
+  // 使用打开文件夹时保存的路径
+  const rootPath = openedFolderPath;
 
   const refreshDirectory = useCallback(async () => {
-    if (files.length === 0) return;
-    
     if (!rootPath) return;
     
     try {
@@ -85,7 +77,7 @@ function App() {
     } catch (error) {
       console.error('Failed to refresh directory:', error);
     }
-  }, [files, rootPath]);
+  }, [rootPath]);
 
   const handleOpenFolder = useCallback(async () => {
     try {
@@ -95,6 +87,7 @@ function App() {
       });
 
       if (selected && typeof selected === 'string') {
+        setOpenedFolderPath(selected);
         const result = await invoke<RustFileNode[]>('read_directory', { path: selected });
         setFiles(result.map(convertFileNode));
       }
@@ -198,6 +191,14 @@ function App() {
     setIsModified(content !== originalContent);
   }, [originalContent]);
 
+  const handleOpenInFinder = useCallback(async (path: string) => {
+    try {
+      await revealItemInDir(path);
+    } catch (error) {
+      console.error('Failed to open in finder:', error);
+    }
+  }, []);
+
   // 监听菜单事件
   useEffect(() => {
     const unlisten = listen('menu-event', (event) => {
@@ -222,7 +223,7 @@ function App() {
   return (
     <div className="app">
       <div className="main-content">
-        {files.length > 0 && (
+        {rootPath && (
           <DirectoryTree
             files={files}
             currentFile={currentFile}
@@ -230,7 +231,8 @@ function App() {
             onCreateFile={handleCreateFile}
             onCreateFolder={handleCreateFolder}
             onDeleteFiles={handleDeleteFiles}
-            rootPath={rootPath || undefined}
+            onOpenInFinder={handleOpenInFinder}
+            rootPath={rootPath}
           />
         )}
         <div className="editor-container">
