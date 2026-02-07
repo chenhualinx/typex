@@ -42,8 +42,12 @@ function App() {
   const handleSave = useCallback(async () => {
     const file = currentFileRef.current;
     const content = currentContentRef.current;
-    if (!file) return;
+    if (!file) {
+      console.log('No file to save');
+      return;
+    }
 
+    console.log('Saving file:', file);
     try {
       await invoke('write_file', {
         path: file,
@@ -51,8 +55,10 @@ function App() {
       });
       setOriginalContent(content);
       setIsModified(false);
+      console.log('File saved successfully');
     } catch (error) {
       console.error('Failed to save file:', error);
+      alert('保存失败: ' + error);
     }
   }, []);
 

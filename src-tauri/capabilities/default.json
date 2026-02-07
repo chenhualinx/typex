@@ -9,6 +9,14 @@
     "core:default",
     "opener:default",
     "fs:default",
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        {
+          "path": "*"
+        }
+      ]
+    },
     "dialog:default"
   ]
 }
