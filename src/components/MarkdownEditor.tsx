@@ -9,7 +9,6 @@ import {
   deleteRow as astDeleteRow,
   insertColumn as astInsertColumn,
   deleteColumn as astDeleteColumn,
-  createTable,
   tableToMarkdown,
 } from '../utils/tableAst';
 import type { Table } from 'mdast';

@@ -90,6 +90,12 @@ html, body, #root {
   color: #666;
 }
 
+.recent-folder-icon {
+  width: 12px !important;
+  height: 12px !important;
+  font-size: 12px;
+}
+
 .open-folder-btn {
   padding: 10px 24px;
   background-color: #1976d2;

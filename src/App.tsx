@@ -325,8 +325,8 @@ function App() {
                 </>
               )}
               {!openedFolderPath && recentFolders.length > 0 && (
-                <div style={{ marginTop: '32px', textAlign: 'left', minWidth: '300px' }}>
-                  <p style={{ fontSize: '12px', color: '#999', marginBottom: '12px', textAlign: 'center' }}>最近访问</p>
+                <div style={{ marginTop: '16px', textAlign: 'left', minWidth: '280px' }}>
+                  <p style={{ fontSize: '14px', color: '#666', marginBottom: '8px', textAlign: 'center' }}>最近访问</p>
                   {recentFolders.map((folder) => (
                     <div
                       key={folder}
@@ -334,9 +334,9 @@ function App() {
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        padding: '8px 12px',
-                        marginBottom: '8px',
-                        borderRadius: '6px',
+                        padding: '6px 10px',
+                        marginBottom: '6px',
+                        borderRadius: '4px',
                         cursor: 'pointer',
                         backgroundColor: '#f5f5f5',
                         transition: 'background-color 0.2s',
@@ -348,10 +348,10 @@ function App() {
                         e.currentTarget.style.backgroundColor = '#f5f5f5';
                       }}
                     >
-                      <FolderOpenOutlined style={{ marginRight: '8px', color: '#999' }} />
+                      <FolderOpenOutlined className="recent-folder-icon" style={{ marginRight: '6px', color: '#999' }} />
                       <span
                         style={{
-                          fontSize: '13px',
+                          fontSize: '14px',
                           color: '#666',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
