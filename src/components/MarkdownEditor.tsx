@@ -214,7 +214,34 @@ export function MarkdownEditor({ content, onChange, onSave }: MarkdownEditorProp
 
         // 标记为内部更新
         isInternalUpdateRef.current = true;
-        vditor.setValue(newContent);
+
+        // 使用 Vditor 的 API 替换内容
+        const editorElement = vditor.vditor.ir?.element;
+        if (editorElement) {
+          // 找到表格元素并替换
+          const tableElements = editorElement.querySelectorAll('table');
+          if (tableElements[tableIndex]) {
+            // 使用 Vditor 的 insertValue 方法
+            const tableMarkdown = tableToMarkdown(newTable);
+            // 选中表格并替换
+            const tableNode = tableElements[tableIndex];
+            const tableRange = document.createRange();
+            const sel = window.getSelection();
+            tableRange.selectNode(tableNode);
+            sel?.removeAllRanges();
+            sel?.addRange(tableRange);
+
+            // 使用 deleteValue 删除选中内容，然后插入新内容
+            vditor.deleteValue();
+            vditor.insertValue(tableMarkdown, true);
+          } else {
+            // 回退到 setValue
+            vditor.setValue(newContent);
+          }
+        } else {
+          vditor.setValue(newContent);
+        }
+
         onChange(newContent);
         console.log('[Table] Content updated');
 
@@ -242,7 +269,64 @@ export function MarkdownEditor({ content, onChange, onSave }: MarkdownEditorProp
       dividersContainer.innerHTML = '';
       const { cols } = getTableDimensions();
 
-      // 在列之间创建分隔线（包括最后一列之后）
+      // 创建列操作柄（在表头顶部）- 先创建，z-index 较低
+      for (let i = 0; i < cols; i++) {
+        const cell = tableElement.rows[0]?.cells[i];
+        if (!cell) continue;
+
+        const cellRect = cell.getBoundingClientRect();
+        const wrapperRect = wrapper.getBoundingClientRect();
+
+        const colHandle = document.createElement('div');
+        colHandle.className = 'table-col-handle';
+        colHandle.style.left = `${cellRect.left - wrapperRect.left}px`;
+        colHandle.style.width = `${cellRect.width}px`;
+        colHandle.dataset.colIndex = String(i);
+
+        // 删除列按钮（至少保留一列）
+        if (cols > 1) {
+          const deleteBtn = document.createElement('button');
+          deleteBtn.className = 'table-delete-col-btn';
+          deleteBtn.innerHTML = '×';
+          deleteBtn.title = '删除列';
+          deleteBtn.onclick = (e) => {
+            e.stopPropagation();
+            modifyTable((table) => astDeleteColumn(table, i));
+          };
+          colHandle.appendChild(deleteBtn);
+        }
+
+        // 点击操作柄选中列
+        colHandle.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const isSelected = colHandle.classList.contains('selected');
+
+          // 清除所有选中状态
+          dividersContainer.querySelectorAll('.table-col-handle.selected').forEach((el) => {
+            el.classList.remove('selected');
+          });
+          dividersContainer.querySelectorAll('.table-row-handle.selected').forEach((el) => {
+            el.classList.remove('selected');
+          });
+          tableElement.querySelectorAll('td, th').forEach((el) => {
+            el.classList.remove('selected');
+          });
+
+          if (!isSelected) {
+            // 选中当前列
+            colHandle.classList.add('selected');
+            // 高亮列中的所有单元格
+            for (let r = 0; r < tableElement.rows.length; r++) {
+              const cell = tableElement.rows[r].cells[i];
+              if (cell) cell.classList.add('selected');
+            }
+          }
+        });
+
+        dividersContainer.appendChild(colHandle);
+      }
+
+      // 在列之间创建分隔线（包括最后一列之后）- 后创建，z-index 较高
       for (let i = 0; i < cols; i++) {
         const cell = tableElement.rows[0]?.cells[i];
         if (!cell) continue;
@@ -273,21 +357,11 @@ export function MarkdownEditor({ content, onChange, onSave }: MarkdownEditorProp
         addBtn.title = '插入列';
         addBtn.onclick = (e) => {
           e.stopPropagation();
+          // 检查是否有选中的操作柄
+          const hasSelectedHandle = dividersContainer.querySelector('.table-col-handle.selected, .table-row-handle.selected');
+          if (hasSelectedHandle) return;
           modifyTable((table) => astInsertColumn(table, i + 1));
         };
-
-        // 删除列按钮（只对非最后一列显示，且至少保留一列）
-        if (cols > 1 && i < cols - 1) {
-          const deleteBtn = document.createElement('button');
-          deleteBtn.className = 'table-delete-col-btn';
-          deleteBtn.innerHTML = '×';
-          deleteBtn.title = '删除列';
-          deleteBtn.onclick = (e) => {
-            e.stopPropagation();
-            modifyTable((table) => astDeleteColumn(table, i));
-          };
-          colDivider.appendChild(deleteBtn);
-        }
 
         colDivider.appendChild(addBtn);
         dividersContainer.appendChild(colDivider);
@@ -298,7 +372,63 @@ export function MarkdownEditor({ content, onChange, onSave }: MarkdownEditorProp
     const createRowDividers = () => {
       const { rows } = getTableDimensions();
 
-      // 在行之间创建分隔线（包括最后一行之后）
+      // 创建行操作柄（在每行左侧）- 先创建，z-index 较低
+      for (let i = 0; i < rows; i++) {
+        const row = tableElement.rows[i];
+        if (!row) continue;
+
+        const rowRect = row.getBoundingClientRect();
+        const wrapperRect = wrapper.getBoundingClientRect();
+
+        const rowHandle = document.createElement('div');
+        rowHandle.className = 'table-row-handle';
+        rowHandle.style.top = `${rowRect.top - wrapperRect.top}px`;
+        rowHandle.style.height = `${rowRect.height}px`;
+        rowHandle.dataset.rowIndex = String(i);
+
+        // 删除行按钮（至少保留一行）
+        if (rows > 1) {
+          const deleteBtn = document.createElement('button');
+          deleteBtn.className = 'table-delete-row-btn';
+          deleteBtn.innerHTML = '×';
+          deleteBtn.title = '删除行';
+          deleteBtn.onclick = (e) => {
+            e.stopPropagation();
+            modifyTable((table) => astDeleteRow(table, i));
+          };
+          rowHandle.appendChild(deleteBtn);
+        }
+
+        // 点击操作柄选中行
+        rowHandle.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const isSelected = rowHandle.classList.contains('selected');
+          
+          // 清除所有选中状态
+          dividersContainer.querySelectorAll('.table-col-handle.selected').forEach((el) => {
+            el.classList.remove('selected');
+          });
+          dividersContainer.querySelectorAll('.table-row-handle.selected').forEach((el) => {
+            el.classList.remove('selected');
+          });
+          tableElement.querySelectorAll('td, th').forEach((el) => {
+            el.classList.remove('selected');
+          });
+
+          if (!isSelected) {
+            // 选中当前行
+            rowHandle.classList.add('selected');
+            // 高亮行中的所有单元格
+            for (let c = 0; c < row.cells.length; c++) {
+              row.cells[c].classList.add('selected');
+            }
+          }
+        });
+
+        dividersContainer.appendChild(rowHandle);
+      }
+
+      // 在行之间创建分隔线（包括最后一行之后）- 后创建，z-index 较高
       for (let i = 0; i < rows; i++) {
         const row = tableElement.rows[i];
         if (!row) continue;
@@ -329,21 +459,11 @@ export function MarkdownEditor({ content, onChange, onSave }: MarkdownEditorProp
         addBtn.title = '插入行';
         addBtn.onclick = (e) => {
           e.stopPropagation();
+          // 检查是否有选中的操作柄
+          const hasSelectedHandle = dividersContainer.querySelector('.table-col-handle.selected, .table-row-handle.selected');
+          if (hasSelectedHandle) return;
           modifyTable((table) => astInsertRow(table, i + 1));
         };
-
-        // 删除行按钮（只对非最后一行显示，且至少保留一行）
-        if (rows > 1 && i < rows - 1) {
-          const deleteBtn = document.createElement('button');
-          deleteBtn.className = 'table-delete-row-btn';
-          deleteBtn.innerHTML = '×';
-          deleteBtn.title = '删除行';
-          deleteBtn.onclick = (e) => {
-            e.stopPropagation();
-            modifyTable((table) => astDeleteRow(table, i));
-          };
-          rowDivider.appendChild(deleteBtn);
-        }
 
         rowDivider.appendChild(addBtn);
         dividersContainer.appendChild(rowDivider);
@@ -364,9 +484,28 @@ export function MarkdownEditor({ content, onChange, onSave }: MarkdownEditorProp
 
     window.addEventListener('resize', handleResize);
 
+    // 点击外部取消选中
+    const handleDocumentClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.table-col-handle') && !target.closest('.table-row-handle')) {
+        dividersContainer.querySelectorAll('.table-col-handle.selected').forEach((el) => {
+          el.classList.remove('selected');
+        });
+        dividersContainer.querySelectorAll('.table-row-handle.selected').forEach((el) => {
+          el.classList.remove('selected');
+        });
+        tableElement.querySelectorAll('td, th').forEach((el) => {
+          el.classList.remove('selected');
+        });
+      }
+    };
+
+    document.addEventListener('click', handleDocumentClick);
+
     // 清理函数
     const cleanup = () => {
       window.removeEventListener('resize', handleResize);
+      document.removeEventListener('click', handleDocumentClick);
     };
 
     // 保存清理函数

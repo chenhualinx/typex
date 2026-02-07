@@ -41,7 +41,7 @@
   width: 16px;
   height: calc(100% + 40px);
   cursor: pointer;
-  z-index: 10;
+  z-index: 20;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -83,12 +83,22 @@
   opacity: 0;
   transform: scale(0);
   margin-bottom: 4px;
+  z-index: 20;
+  caret-color: transparent;
 }
 
 .table-col-divider:hover .table-col-add-btn,
 .table-col-add-btn:hover {
   opacity: 1;
   transform: scale(1);
+}
+
+/* 选中操作柄时隐藏插入按钮 */
+.enhanced-table-wrapper:has(.table-col-handle.selected) .table-col-add-btn,
+.enhanced-table-wrapper:has(.table-row-handle.selected) .table-col-add-btn {
+  opacity: 0 !important;
+  transform: scale(0) !important;
+  pointer-events: none !important;
 }
 
 .table-col-add-btn:hover {
@@ -104,7 +114,7 @@
   background: #ff4d4f;
   color: #fff;
   border-radius: 50%;
-  cursor: pointer;
+  caret-color: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -135,7 +145,7 @@
   width: calc(100% + 40px);
   height: 16px;
   cursor: pointer;
-  z-index: 10;
+  z-index: 20;
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -177,12 +187,22 @@
   opacity: 0;
   transform: scale(0);
   margin-right: 4px;
+  z-index: 20;
+  caret-color: transparent;
 }
 
 .table-row-divider:hover .table-row-add-btn,
 .table-row-add-btn:hover {
   opacity: 1;
   transform: scale(1);
+}
+
+/* 选中操作柄时隐藏插入按钮 */
+.enhanced-table-wrapper:has(.table-col-handle.selected) .table-row-add-btn,
+.enhanced-table-wrapper:has(.table-row-handle.selected) .table-row-add-btn {
+  opacity: 0 !important;
+  transform: scale(0) !important;
+  pointer-events: none !important;
 }
 
 .table-row-add-btn:hover {
@@ -198,7 +218,7 @@
   background: #ff4d4f;
   color: #fff;
   border-radius: 50%;
-  cursor: pointer;
+  caret-color: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -213,6 +233,106 @@
 
 .table-row-divider:hover .table-delete-row-btn,
 .table-delete-row-btn:hover {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* 列操作柄 - 在表头顶部，与列同宽 */
+.table-col-handle {
+  position: absolute;
+  top: -6px;
+  height: 6px;
+  cursor: pointer;
+  z-index: 11;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  opacity: 0;
+  background: #e8e8e8;
+  border-radius: 2px;
+  transition: all 0.2s ease;
+}
+
+/* 悬停或选中时显示 */
+.enhanced-table-wrapper:hover .table-col-handle,
+.table-col-handle.selected {
+  opacity: 1;
+}
+
+/* 悬停效果 */
+.table-col-handle:hover {
+  background: #d0d0d0;
+}
+
+/* 选中状态的列操作柄 */
+.table-col-handle.selected {
+  top: -8px;
+  height: 8px;
+  background: #1890ff;
+}
+
+/* 列删除按钮 */
+.table-col-handle .table-delete-col-btn {
+  position: absolute;
+  top: -24px;
+  opacity: 0;
+  transform: scale(0);
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+.table-col-handle.selected .table-delete-col-btn {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* 行操作柄 - 在每行左侧，与行同高 */
+.table-row-handle {
+  position: absolute;
+  left: -6px;
+  width: 6px;
+  cursor: pointer;
+  z-index: 11;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  opacity: 0;
+  background: #e8e8e8;
+  border-radius: 2px;
+  transition: all 0.2s ease;
+}
+
+/* 悬停或选中时显示 */
+.enhanced-table-wrapper:hover .table-row-handle,
+.table-row-handle.selected {
+  opacity: 1;
+}
+
+/* 悬停效果 */
+.table-row-handle:hover {
+  background: #d0d0d0;
+}
+
+/* 选中状态的行操作柄 */
+.table-row-handle.selected {
+  left: -8px;
+  width: 8px;
+  background: #1890ff;
+}
+
+/* 行删除按钮 */
+.table-row-handle .table-delete-row-btn {
+  position: absolute;
+  left: -24px;
+  opacity: 0;
+  transform: scale(0);
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+.table-row-handle.selected .table-delete-row-btn {
   opacity: 1;
   transform: scale(1);
 }
